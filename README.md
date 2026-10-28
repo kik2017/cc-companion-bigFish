@@ -23,6 +23,49 @@
 - **和你互动：**拖到任何地方、摸摸头、戳一戳、碰碰尾巴。
 - **开口说话（可选）：**用你自己的 Anthropic API Key，她会在值得一提的时刻说上一句、在你找她聊天时回答，每晚还会睡觉：写日记、整理对你的了解，偶尔做个梦。
 
+## 她的动作
+
+**Claude Code 工作时**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/idle.webp" width="165" alt="待机：安静地站着"><br><sub>待机</sub></td>
+<td align="center"><img src="docs/images/anim/thinking.webp" width="165" alt="思考"><br><sub>思考 · 压缩上下文</sub></td>
+<td align="center"><img src="docs/images/anim/editing.webp" width="165" alt="编辑文件"><br><sub>编辑文件 · 委派子 Agent</sub></td>
+<td align="center"><img src="docs/images/anim/running.webp" width="165" alt="执行命令"><br><sub>执行命令</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/waiting.webp" width="165" alt="查找，或等你确认"><br><sub>读取与查找 · 等你确认</sub></td>
+<td align="center"><img src="docs/images/anim/done.webp" width="165" alt="完成"><br><sub>完成</sub></td>
+<td align="center"><img src="docs/images/anim/error.webp" width="165" alt="出错停下"><br><sub>出错</sub></td>
+<td></td>
+</tr>
+</table>
+
+**和她互动时**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/head_pat.webp" width="165" alt="摸头"><br><sub>摸摸头（或双击）</sub></td>
+<td align="center"><img src="docs/images/anim/poke.webp" width="165" alt="戳一戳"><br><sub>戳一戳</sub></td>
+<td align="center"><img src="docs/images/anim/tail.webp" width="165" alt="碰尾巴"><br><sub>碰碰尾巴</sub></td>
+<td align="center"><img src="docs/images/anim/drag.webp" width="165" alt="被拖起再放下"><br><sub>拖动她，再放手</sub></td>
+</tr>
+</table>
+
+**没事发生时**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/stretch.webp" width="165" alt="伸懒腰"><br><sub>伸个懒腰</sub></td>
+<td align="center"><img src="docs/images/anim/yawn.webp" width="165" alt="打哈欠"><br><sub>打个哈欠</sub></td>
+<td align="center"><img src="docs/images/anim/snack.webp" width="165" alt="吃 token"><br><sub>偷吃 token</sub></td>
+<td></td>
+</tr>
+</table>
+
+开启她的声音后，其中一些动作也代表她的心情：开心（尾巴）、得意（完成）、担心（戳一戳）、困了（打哈欠）、好奇（伸懒腰）。预览为 40% 大小、每秒 8 帧；在桌面上她是原尺寸、每秒 24 帧。
+
 ## 开始使用（Windows 10 / 11）
 
 1. **解压** `cc-companion-<版本>-windows-x64.zip` 到任意位置。最好放在路径里没有空格的文件夹，比如 `C:\Apps\cc-companion`（原因见[状态栏](#状态栏)）。

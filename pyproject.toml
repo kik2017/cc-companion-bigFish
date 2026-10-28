@@ -20,6 +20,8 @@ dev = ["pytest"]
 mind = ["anthropic>=1,<2"]
 # The portable build (python packaging/build.py).
 build = ["pyinstaller>=6,<7"]
+# The README's animated previews (python tools/make_previews.py).
+docs = ["pillow>=10"]
 
 [tool.setuptools]
 packages = ["companion", "mind"]

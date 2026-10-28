@@ -23,6 +23,49 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 - **Reacts to you:** drag her anywhere, pat her head, poke her, touch her tail.
 - **Can talk (optional):** with your own Anthropic API key she says short lines at moments that matter, answers when you chat with her, and sleeps each night: she writes a diary, sorts out what she has learned about you, and sometimes dreams.
 
+## See her move
+
+**While Claude Code works**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/idle.webp" width="165" alt="Idle: standing calmly"><br><sub>Idle</sub></td>
+<td align="center"><img src="docs/images/anim/thinking.webp" width="165" alt="Thinking"><br><sub>Thinking · compacting</sub></td>
+<td align="center"><img src="docs/images/anim/editing.webp" width="165" alt="Editing files"><br><sub>Editing · delegating</sub></td>
+<td align="center"><img src="docs/images/anim/running.webp" width="165" alt="Running a command"><br><sub>Running a command</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/waiting.webp" width="165" alt="Searching, or waiting for you"><br><sub>Searching · waiting for you</sub></td>
+<td align="center"><img src="docs/images/anim/done.webp" width="165" alt="Done"><br><sub>Done</sub></td>
+<td align="center"><img src="docs/images/anim/error.webp" width="165" alt="Stopped on an error"><br><sub>Error</sub></td>
+<td></td>
+</tr>
+</table>
+
+**When you play with her**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/head_pat.webp" width="165" alt="A head pat"><br><sub>Pat her head (or double-click)</sub></td>
+<td align="center"><img src="docs/images/anim/poke.webp" width="165" alt="A poke"><br><sub>Poke her</sub></td>
+<td align="center"><img src="docs/images/anim/tail.webp" width="165" alt="Touching her tail"><br><sub>Touch her tail</sub></td>
+<td align="center"><img src="docs/images/anim/drag.webp" width="165" alt="Dragged and set down"><br><sub>Drag her, then let go</sub></td>
+</tr>
+</table>
+
+**While nothing happens**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/stretch.webp" width="165" alt="Stretching"><br><sub>A stretch</sub></td>
+<td align="center"><img src="docs/images/anim/yawn.webp" width="165" alt="Yawning"><br><sub>A yawn</sub></td>
+<td align="center"><img src="docs/images/anim/snack.webp" width="165" alt="Eating a token"><br><sub>Snacking on a token</sub></td>
+<td></td>
+</tr>
+</table>
+
+With her voice on, some of these also show her mood: happy (tail), proud (done), worried (poke), sleepy (yawn) and curious (stretch). Previews are shown at 40% size and 8 fps; on your desktop she moves at full size and 24 fps.
+
 ## Get started (Windows 10 / 11)
 
 1. **Unzip** `cc-companion-<version>-windows-x64.zip` anywhere you like. A folder without spaces in its path, such as `C:\Apps\cc-companion`, is best (see [the status line](#the-status-line)).
