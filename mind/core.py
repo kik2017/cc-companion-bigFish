@@ -9,6 +9,15 @@ Sleep (sleep.py) runs as a job too, when an ended day is still unslept and eithe
 mind has just started or you have been away IDLE_BEFORE_SLEEP. It holds `busy`, so she
 does not talk in her sleep; her first greeting after it may mention her dream.
 
+A pat always gets its turn: one that comes while a line is on its way, or under the
+daemon's SAY_INTERVAL_S after her last line (so her lines never replace each other too
+fast), is held, and tick() asks for it once she is free and the interval has passed. Pats
+held meanwhile count together; one that waited over PAT_WAIT is let go. While a pat is
+held, the main loop ticks every PAT_POLL_S (wait_s()).
+
+Each tick also reads the desk: the seconds since the last keyboard or mouse input, from
+the `idle` function (idle.py), handed to the senses. Away from the desk she keeps her lines.
+
 Messages from the daemon, one JSON object per line on stdin:
   {"type": "event", "event": {...}}        an allowlisted hook or status line event
   {"type": "display", "display": {...}}    what the pet shows, on each change
@@ -33,16 +42,16 @@ import logging
 import threading
 import unicodedata
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from companion.server import UNPRINTABLE
+from companion.server import SAY_INTERVAL_S, UNPRINTABLE
 
 from . import facts as facts_mod
 from .budget import OUT_OF_LINES, Budget
 from .files import CHOICES, Files, read_json, valid_config, write_json
 from .mood import Mood, energy_at
 from .prompts import Redactor, chat_prompt, system_prompt, user_prompt
-from .senses import Moment, Senses, day_of
+from .senses import AWAY_AFTER, Moment, Senses, day_of
 from .sleep import IDLE_BEFORE_SLEEP, Sleep
 from .voice import Voice
 
@@ -50,9 +59,13 @@ log = logging.getLogger("mind")
 
 Job = Callable[..., None]
 SayFn = Callable[..., int]  # (text or None for mood-only, mood, reply=False) -> HTTP status
+IdleFn = Callable[[], float | None]  # seconds since the last keyboard or mouse input; None: unknown
 CHAT_MAX_CHARS = 300
 CHAT_CONTEXT = 10  # the last this many chat lines of today go with each new message
 RECENT_KEPT = 20
+PAT_WAIT = timedelta(seconds=60)
+PAT_POLL_S = 1.0
+SEEN_SAVE = timedelta(minutes=1)  # input at the desk moves last_seen every tick; it is saved at most this often
 
 
 def clean_chat(raw: object) -> str | None:
@@ -65,12 +78,16 @@ def clean_chat(raw: object) -> str | None:
 
 
 class Mind:
-    def __init__(self, files: Files, config: dict, voice: Voice | None, say: SayFn, now: Callable[[], datetime] = datetime.now) -> None:
+    def __init__(
+        self, files: Files, config: dict, voice: Voice | None, say: SayFn,
+        now: Callable[[], datetime] = datetime.now, idle: IdleFn = lambda: None,
+    ) -> None:  # fmt: skip
         self.files = files
         self.config = config
         self.voice = voice
         self.say = say
         self.now = now
+        self.idle = idle
         self.lock = threading.Lock()
         state = read_json(files.state)
         self.senses = Senses.from_state(state.get("senses", {}), config["chattiness"])
@@ -80,6 +97,9 @@ class Mind:
         self.redact = Redactor(config["redact_projects"])
         self.mode = "on"
         self.busy = False  # a voice or sleep job is in flight
+        self.held_pat: tuple[Moment, datetime] | None = None  # a pat waiting its turn, and since when
+        self.last_say: datetime | None = None  # her last line or mood the daemon took
+        self.saved_seen = self.senses.last_seen  # as of the last save
         self.sleeper = Sleep(files, voice, self._record) if voice is not None else None
         self.just_started = True
         private = read_json(files.config).get("private_day")
@@ -147,12 +167,20 @@ class Mind:
     def tick(self) -> list[Job]:
         now = self.now()
         with self.lock:
-            moments = self.senses.tick(now)
+            moments = self.senses.on_idle(self._idle(), now) + self.senses.tick(now)
             jobs = [job for moment in moments if (job := self._react(moment, now)) is not None]
-            if moments:
+            if (pat := self._held_pat_job(now)) is not None:
+                jobs.append(pat)
+            seen, saved = self.senses.last_seen, self.saved_seen
+            if moments or (seen is not None and (saved is None or seen - saved >= SEEN_SAVE)):
                 self._save()
             sleep = self._sleep_job(now)
         return jobs + ([sleep] if sleep is not None else [])
+
+    def wait_s(self, default: float) -> float:
+        """How long the main loop may wait for a message before the next tick: briefly while a pat is held."""
+        with self.lock:
+            return PAT_POLL_S if self.held_pat is not None else default
 
     # --- sleeping ------------------------------------------------------------------------
 
@@ -172,7 +200,7 @@ class Mind:
 
     def _sleep(self, days: list) -> None:
         try:
-            self.say(None, "sleepy")
+            self._post(None, "sleepy")
             for day in days:
                 self.sleeper.run(day)
         finally:
@@ -190,10 +218,17 @@ class Mind:
         """Log the moment, move her mood, and return a job if it is worth a line."""
         mood = self.mood.apply(moment.kind, now)
         self._remember(now, "moment", moment=moment.kind, **_redacted(moment.detail, self.redact))
-        waiting = self.senses.display.get("state") == "waiting"
         if self.mode == "quiet" or self.voice is None:
             return self._mood_only(moment, mood)
-        reason = self.budget.why_not(moment.kind, now, waiting)
+        return self._line(moment, now, mood)
+
+    def _line(self, moment: Moment, now: datetime, mood: str) -> Job | None:
+        """The job that asks for a line, if her budget allows one now; a pat that must wait is held."""
+        waiting = self.senses.display.get("state") == "waiting"
+        reason = self.budget.why_not(moment.kind, now, waiting, away=self._away())
+        if reason is None and moment.kind == "pat" and (self.busy or self._say_wait(now) > 0):
+            self._hold_pat(moment, now)
+            return None
         if reason is None and self.busy:
             reason = "a line is already on its way"
         if reason is not None:
@@ -221,10 +256,59 @@ class Mind:
 
     def _mood_only(self, moment: Moment, mood: str) -> Job:
         def run() -> None:
-            status = self.say(None, mood)
+            status = self._post(None, mood)
             log.info("moment %s: mood %s (%s)", moment.kind, mood, status)
 
         return run
+
+    # --- pats waiting their turn ---------------------------------------------------------
+
+    def _hold_pat(self, moment: Moment, now: datetime) -> None:
+        if self.held_pat is None:
+            self.held_pat = (Moment("pat", {**moment.detail, "waited": True, "times": 1}), now)
+        else:
+            held, since = self.held_pat
+            self.held_pat = (Moment("pat", {**held.detail, **moment.detail, "times": held.detail["times"] + 1}), since)
+        log.info("moment pat: held until she is free")
+
+    def _held_pat_job(self, now: datetime) -> Job | None:
+        """The held pat's line, once she is free and the daemon will take it; None while it waits."""
+        if self.held_pat is None:
+            return None
+        moment, since = self.held_pat
+        if now - since > PAT_WAIT:
+            self.held_pat = None
+            log.info("moment pat: let go after waiting too long")
+            return None
+        if self.busy or self._say_wait(now) > 0:
+            return None
+        self.held_pat = None
+        return self._line(moment, now, self.mood.name(now))
+
+    def _say_wait(self, now: datetime) -> float:
+        """Seconds until the daemon takes another line: its interval since her last one (none with No pause)."""
+        if self.last_say is None or self.config.get("no_gap") is True:
+            return 0.0
+        return max(0.0, SAY_INTERVAL_S - (now - self.last_say).total_seconds())
+
+    # --- the desk ------------------------------------------------------------------------
+
+    def _idle(self) -> timedelta | None:
+        seconds = self.idle()
+        return timedelta(seconds=seconds) if isinstance(seconds, (int, float)) and seconds >= 0 else None
+
+    def _away(self) -> bool:
+        """Nobody at the desk right now (read fresh, so a return between ticks counts)."""
+        idle = self._idle()
+        return idle is not None and idle >= AWAY_AFTER
+
+    def _post(self, text: str | None, mood: str, reply: bool = False) -> int:
+        """Send a line or a mood to the daemon; the time it was taken, for the interval a held pat waits out."""
+        status = self.say(text, mood, reply=reply) if reply else self.say(text, mood)
+        if status == 204:
+            with self.lock:
+                self.last_say = self.now()
+        return status
 
     def _speak(self, moment: Moment, system: str, user: str, mood: str) -> None:
         """A job: one API call, then the line (or silence), the spend and the notice."""
@@ -236,9 +320,9 @@ class Mind:
                 return
             if not reply.say:
                 log.info("moment %s: she chose silence", moment.kind)
-                self.say(None, reply.mood)
+                self._post(None, reply.mood)
                 return
-            status = self.say(reply.say, reply.mood)
+            status = self._post(reply.say, reply.mood)
             log.info("moment %s: said %d chars, mood %s (%s)", moment.kind, len(reply.say), reply.mood, status)
             if status == 204:
                 with self.lock:
@@ -285,7 +369,7 @@ class Mind:
 
     def _mood_reply(self, mood: str, why: str) -> Job:
         def run() -> None:
-            status = self.say(None, mood, reply=True)
+            status = self._post(None, mood, reply=True)
             log.info("chat: mood %s only, %s (%s)", mood, why, status)
 
         return run
@@ -299,9 +383,9 @@ class Mind:
             return
         if not reply.say:
             log.info("chat: she answered without words")
-            self.say(None, reply.mood, reply=True)
+            self._post(None, reply.mood, reply=True)
             return
-        status = self.say(reply.say, reply.mood, reply=True)
+        status = self._post(reply.say, reply.mood, reply=True)
         log.info("chat: said %d chars, mood %s (%s)", len(reply.say), reply.mood, status)
         if status == 204:
             with self.lock:
@@ -333,6 +417,7 @@ class Mind:
 
     def _save(self) -> None:
         write_json(self.files.state, {"senses": self.senses.to_state(), "mood": self.mood.to_state()})
+        self.saved_seen = self.senses.last_seen
 
 
 def _redacted(detail: dict, redact: Redactor) -> dict:

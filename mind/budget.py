@@ -10,9 +10,12 @@ Past a daily limit she answers with moods only. Every line and reply is one API 
 
 A line also needs all of:
   - no session waiting on you, unless you just patted her
+  - someone at the desk (keyboard or mouse used in the last AWAY_AFTER), unless you just
+    patted her: nobody would read it, and what happened meanwhile waits for your return
   - outside quiet hours, unless it is a late-night or pat moment, or a greeting after
     her day starts (05:00), so an early start still gets its morning hello
-  - min_gap_s since the last line
+  - min_gap_s since the last line, except for a pat: you asked, so a pat waits only for
+    the daemon's own interval between lines (core.py holds it until then)
   - no chat with you in the last CHAT_HUSH, so a moment never talks over her answer
 With "no_gap" on (the menu's "No pause"), min_gap_s and CHAT_HUSH are skipped.
 
@@ -77,7 +80,7 @@ class Budget:
         self.chatted: list[datetime] = []  # chat replies asked for
         self.spend = spend if isinstance(spend, dict) else {}
 
-    def why_not(self, kind: str, now: datetime, waiting: bool) -> str | None:
+    def why_not(self, kind: str, now: datetime, waiting: bool, away: bool = False) -> str | None:
         """None if a line for a moment of `kind` may be spent now, else the reason it may not."""
         if (reason := self._over_limit(now)) is not None:
             return reason
@@ -86,13 +89,15 @@ class Budget:
             return "talking with you"
         if waiting and kind not in ALWAYS_TALK:
             return "a session needs you"
+        if away and kind not in ALWAYS_TALK:
+            return "nobody at the desk"
         morning = kind == "greeting" and now.hour >= DAY_START_HOUR
         if in_quiet_hours(now.hour, self.config["quiet_hours"]) and kind not in QUIET_HOURS_OK and not morning:
             return "quiet hours"
         self.spoken = [t for t in self.spoken if now - t < timedelta(hours=1)]
         if self._limit() == "normal" and len(self.spoken) >= self.config["lines_per_hour"]:
             return "hourly limit"
-        if not no_gap and self.spoken and (now - self.spoken[-1]).total_seconds() < self.config["min_gap_s"]:
+        if not no_gap and kind not in ALWAYS_TALK and self.spoken and (now - self.spoken[-1]).total_seconds() < self.config["min_gap_s"]:
             return "too soon"
         return None
 

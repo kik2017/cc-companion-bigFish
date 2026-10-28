@@ -89,8 +89,8 @@ def describe_moment(kind: str, detail: dict, project) -> str:
     where = f" in {project(detail.get('project'))}" if project(detail.get("project")) else ""
     if kind == "greeting":
         if detail.get("first_today"):
-            return "Greeting: the user just started working for the first time today."
-        return f"Greeting: the user is back after about {detail.get('hours_away')} hours away."
+            return "Greeting: the user is here for the first time today." + _news(detail)
+        return f"Greeting: the user is back after about {detail.get('hours_away')} hours away." + _news(detail)
     if kind == "new_session":
         return f"A new Claude Code session just started{where}."
     if kind == "long_done":
@@ -119,13 +119,26 @@ def describe_moment(kind: str, detail: dict, project) -> str:
             "She may share a small passing thought about the moment, or stay silent."
         )
     if kind == "back":
-        return f"The user is back after a short break of about {detail.get('minutes_away')} minutes."
+        return f"The user is back at the desk after about {detail.get('minutes_away')} minutes away." + _news(detail)
+    if kind == "day_part":
+        since = f", and the user has been around since {detail['since']}" if detail.get("since") else ""
+        return f"A new part of the day has begun: it is {detail.get('part')} now ({detail.get('time')}){since}."
     if kind == "goodbye":
         return f"A Claude Code session{where} just ended."
     if kind == "pat":
         part = {"head": "patted her head", "tail": "touched her tail", "body": "poked her"}.get(detail.get("zone"), "poked her")
-        return f"The user just {part}."
+        if not detail.get("waited"):
+            return f"The user just {part}."
+        times = detail.get("times", 1)
+        return f"The user {part}{f' {times} times' if times > 1 else ''} while she was still speaking; she turns to them now."
     return f"Moment: {kind}."
+
+
+def _news(detail: dict) -> str:
+    """What happened while the user was away from the desk, if anything."""
+    turns, errors = detail.get("turns_while_away"), detail.get("errors_while_away")
+    news = [text for count, text in ((turns, f"{turns} turn(s) of work finished"), (errors, f"{errors} error(s) came up")) if count]
+    return f" While they were away, {' and '.join(news)}." if news else ""
 
 
 def user_prompt(

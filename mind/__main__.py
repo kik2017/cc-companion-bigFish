@@ -22,6 +22,7 @@ from companion.server import HOST, SAY_TOKEN_HEADER, port_from_env
 from .budget import describe_limit
 from .core import Mind
 from .files import Files
+from .idle import input_idle_s
 from .voice import Voice, find_api_key
 
 NOT_CONFIGURED = 3
@@ -77,7 +78,7 @@ def main() -> int:
         return NOT_CONFIGURED
     token = os.environ.get("CC_COMPANION_SAY_TOKEN") or prefs.say_token_path().read_text(encoding="utf-8").strip()
     voice = Voice(anthropic.Anthropic(api_key=key, timeout=30.0, max_retries=1), config["model"])
-    mind = Mind(files, config, voice, say_sender(token))
+    mind = Mind(files, config, voice, say_sender(token), idle=input_idle_s)
     log.info("mind up: model %s, %s", config["model"], describe_limit(config))
 
     inbox: queue.Queue = queue.Queue()
@@ -91,7 +92,7 @@ def main() -> int:
     with ThreadPoolExecutor(max_workers=1, thread_name_prefix="mind-voice") as worker:
         while True:
             try:
-                line = inbox.get(timeout=TICK_S)
+                line = inbox.get(timeout=mind.wait_s(TICK_S))
             except queue.Empty:
                 jobs = mind.tick()
             else:

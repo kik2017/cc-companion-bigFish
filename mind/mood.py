@@ -31,6 +31,7 @@ NUDGES = {
     "musing": 0,
     "goodbye": 0,
     "chat": 4,
+    "day_part": 0,
 }
 PROUD_AFTER = {"long_done", "milestone"}
 

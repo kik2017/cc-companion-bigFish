@@ -111,6 +111,8 @@ Off by default. It needs an API key; see step 5 above.
 | Chattiness | Quiet, Normal or Chatty: how often she gets a chance to speak |
 | Open her folder | Her identity, diary, memories and settings, as plain files |
 
+**She notices when you are around.** While nobody is at the keyboard she keeps her lines to herself; when you come back she may greet you and tell you what finished while you were gone. She notices the afternoon, evening and night coming on, too. Pat her while she is mid-sentence and she answers once she has finished.
+
 **Her day ends at 5 am.** After it ends, once you have been away for half an hour, she sleeps: she writes a diary entry, updates what she knows about you, rewrites a little of who she is becoming, and sometimes dreams. She may tell you her dream the next morning.
 
 **Make her your own.** Her name is 汐 (Shio) and she speaks Simplified Chinese by default. Open her folder and edit `identity.md` to change her name, personality, language, or what she calls you.
@@ -131,6 +133,7 @@ The status line needs a folder path without spaces or symbols. If yours has them
 
 - **Watching stays on your computer.** She listens only on your own machine (127.0.0.1) and keeps only event names, tool names, counts, the project folder's name and similar labels. Your prompts, code, files and Claude's replies are dropped on arrival and never stored.
 - **When she talks**, she sends Anthropic only those labels (what Claude Code is doing, times, counts, project folder names) and anything you type to her in the chat box. She never sees your code, prompts or Claude's replies.
+- **To know whether you are at your desk**, she reads only how long it has been since you last used the keyboard or mouse: never what you typed or where you clicked.
 - **Her memories are plain files** in `%LOCALAPPDATA%\cc-companion\persona\`, on your computer only. Read them, edit them, or delete them.
 - **Your API key** is stored only as your Windows user environment variable `CC_COMPANION_API_KEY`. The app never writes it to a file or a log.
 - **Connect to Claude Code** adds only her own entries to `~/.claude/settings.json`, keeps everything else, and saves a backup first. Her hooks only watch: they never approve, block or change anything Claude does.

@@ -596,7 +596,7 @@ def test_new_moments_have_words_in_her_prompt():
     redact = Redactor(False)
     assert "short turn in x just finished after 40 seconds" in describe_moment("turn_done", {"seconds": 40, "project": "x"}, redact)
     assert "working for 14 minutes" in describe_moment("musing", {"minutes_working": 14}, redact)
-    assert "short break of about 15 minutes" in describe_moment("back", {"minutes_away": 15}, redact)
+    assert "back at the desk after about 15 minutes away." in describe_moment("back", {"minutes_away": 15}, redact)
     assert "session in x just ended" in describe_moment("goodbye", {"project": "x"}, redact)
 
 def test_the_menu_switches_her_chattiness_live(mind):
@@ -855,3 +855,218 @@ def test_private_day_is_read_from_config_at_start(mind):
     mind_files.write_json(mind.files.config, {**mind.files.load_config(), "private_day": "2026-10-28"})
     again = Mind(mind.files, mind.files.load_config(), mind.voice, mind.say, now=mind.clock)
     assert again.private(DAY)
+
+
+# --- the desk and the clock ------------------------------------------------------------------
+
+MIN = timedelta(minutes=1)
+
+
+def test_reading_at_the_desk_for_hours_is_not_a_return():
+    senses = Senses("quiet")
+    senses.on_event(ev("UserPromptSubmit"), DAY)
+    for minute in range(5, 180, 5):  # three hours of reading, touching the mouse now and then
+        assert senses.on_idle(timedelta(seconds=40), DAY + minute * MIN) == []
+    assert senses.on_event(ev("UserPromptSubmit"), DAY + timedelta(hours=3)) == [], "never away, so no greeting"
+
+
+def test_coming_back_to_the_desk_greets_before_any_prompt():
+    senses = Senses("quiet")
+    senses.on_event(ev("UserPromptSubmit"), DAY)
+    senses.on_idle(timedelta(0), DAY + 5 * MIN)
+    assert senses.on_idle(timedelta(minutes=30), DAY + 35 * MIN) == [], "away: nothing yet"
+    (moment,) = senses.on_idle(timedelta(seconds=2), DAY + timedelta(hours=3))
+    assert moment.kind == "greeting" and moment.detail == {"first_today": False, "hours_away": 2.9}
+    assert senses.on_event(ev("UserPromptSubmit"), DAY + timedelta(hours=3, minutes=1)) == []
+
+
+def test_the_first_input_of_the_day_is_her_greeting():
+    senses = Senses()
+    (moment,) = senses.on_idle(timedelta(seconds=1), DAY)
+    assert moment.kind == "greeting" and moment.detail["first_today"] is True
+    assert senses.summary()["days_together"] == 1 and senses.summary()["first"] == "10:00"
+
+
+def test_back_at_the_desk_with_news_of_what_happened_meanwhile():
+    senses = Senses()
+    senses.on_event(ev("UserPromptSubmit"), DAY)
+    senses.on_event(ev("UserPromptSubmit"), DAY + 2 * MIN)
+    assert senses.on_idle(timedelta(minutes=12), DAY + 14 * MIN) == []
+    assert kinds(senses.on_event(ev("Stop"), DAY + 20 * MIN)) == ["long_done"]
+    senses.on_event(ev("PostToolUseFailure"), DAY + 21 * MIN)
+    (moment,) = senses.on_idle(timedelta(seconds=3), DAY + 40 * MIN)
+    assert moment.kind == "back" and moment.detail == {"minutes_away": 38, "turns_while_away": 1, "errors_while_away": 1}
+    assert senses.while_away == {"turns": 0, "errors": 0}
+
+
+def test_back_with_nothing_new_is_quiet_and_the_quiet_profile_brings_no_news():
+    for name, done in (("normal", False), ("quiet", True)):
+        senses = Senses(name)
+        senses.on_event(ev("UserPromptSubmit"), DAY)
+        senses.on_idle(timedelta(0), DAY + MIN)
+        if done:
+            senses.on_event(ev("Stop"), DAY + 5 * MIN)
+        assert senses.on_idle(timedelta(seconds=3), DAY + 40 * MIN) == [], name
+
+
+def test_without_the_idle_sense_only_actions_count():
+    senses = Senses()
+    assert senses.on_idle(None, DAY) == []
+    senses.on_event(ev("UserPromptSubmit"), DAY)
+    senses.on_event(ev("Stop"), DAY + MIN)
+    assert senses.on_event(ev("UserPromptSubmit"), DAY + 30 * MIN) == [], "no news without knowing they left"
+
+
+def test_part_of_day():
+    from mind.senses import part_of_day
+
+    hours = {5: "morning", 11: "morning", 12: "afternoon", 17: "afternoon", 18: "evening", 22: "evening", 23: "night", 0: "night", 1: None, 4: None}
+    assert {hour: part_of_day(DAY.replace(hour=hour)) for hour in hours} == hours
+
+
+def test_each_new_part_of_the_day_once_after_the_greeting():
+    for name in ("normal", "quiet"):
+        senses = Senses(name)
+        assert kinds(senses.on_event(ev("UserPromptSubmit"), DAY)) == ["greeting"]
+        assert senses.on_event(ev("UserPromptSubmit"), DAY + timedelta(hours=1)) == []
+        got = kinds(senses.on_event(ev("UserPromptSubmit"), DAY.replace(hour=12, minute=30)))
+        assert got == (["day_part"] if name == "normal" else [])
+        assert senses.on_event(ev("UserPromptSubmit"), DAY.replace(hour=13)) == []
+        seen, when = [], DAY.replace(hour=13)
+        while when < DAY.replace(hour=23) + timedelta(hours=3):  # at the desk until 02:00, never prompting
+            seen += [(when.strftime("%H:%M"), m.kind, m.detail.get("part")) for m in senses.on_idle(timedelta(seconds=30), when)]
+            when += 5 * MIN
+        parts = [("18:00", "day_part", "evening"), ("23:00", "day_part", "night")] if name == "normal" else []
+        assert seen == parts + [("01:00", "late_night", None)], name
+
+
+def test_a_day_part_names_the_part_and_since_when():
+    senses = Senses()
+    senses.on_event(ev("UserPromptSubmit"), DAY)
+    senses.on_event(ev("UserPromptSubmit"), DAY + timedelta(hours=1))
+    (moment,) = senses.on_event(ev("UserPromptSubmit"), DAY.replace(hour=12, minute=30))
+    assert moment.detail == {"part": "afternoon", "time": "12:30", "since": "10:00"}
+
+
+def test_the_desk_and_the_parts_survive_a_restart():
+    senses = Senses()
+    senses.on_event(ev("UserPromptSubmit"), DAY)
+    senses.on_idle(timedelta(minutes=15), DAY + 15 * MIN)
+    senses.on_event(ev("Stop"), DAY + 16 * MIN)
+    restored = Senses.from_state(json.loads(json.dumps(senses.to_state())))
+    assert restored.while_away == {"turns": 1, "errors": 0} and restored.today["parts"] == ["morning"]
+    odd = Senses.from_state({"while_away": {"turns": "x"}, "today": {"date": "2026-10-28", "parts": ["noon", "evening"]}})
+    assert odd.while_away == {"turns": 0, "errors": 0} and odd.today["parts"] == ["evening"]
+
+
+def test_away_from_the_desk_holds_lines_but_not_pats_and_pats_skip_the_gap():
+    budget = Budget(dict(DEFAULT_CONFIG))
+    assert budget.why_not("long_done", DAY, waiting=False, away=True) == "nobody at the desk"
+    assert budget.why_not("pat", DAY, waiting=False, away=True) is None
+    budget.take(DAY)
+    assert budget.why_not("pat", DAY + timedelta(seconds=5), waiting=False) is None
+    assert budget.why_not("long_done", DAY + timedelta(seconds=5), waiting=False) == "too soon"
+
+
+def test_the_desk_and_the_clock_have_words_in_her_prompt():
+    from mind.prompts import describe_moment
+
+    redact = Redactor(False)
+    back = describe_moment("back", {"minutes_away": 38, "turns_while_away": 2, "errors_while_away": 1}, redact)
+    assert back == (
+        "The user is back at the desk after about 38 minutes away. "
+        "While they were away, 2 turn(s) of work finished and 1 error(s) came up."
+    )
+    part = describe_moment("day_part", {"part": "evening", "time": "18:00", "since": "10:00"}, redact)
+    assert part == "A new part of the day has begun: it is evening now (18:00), and the user has been around since 10:00."
+    assert describe_moment("greeting", {"first_today": True}, redact) == "Greeting: the user is here for the first time today."
+
+
+def test_the_idle_sense_reads_a_time_or_nothing():
+    import sys
+
+    from mind.idle import input_idle_s
+
+    idle = input_idle_s()
+    assert idle is None or idle >= 0
+    if sys.platform != "win32":
+        assert idle is None
+
+
+def content(mind):
+    return mind.client.calls[-1]["messages"][0]["content"]
+
+
+def test_a_pat_during_a_line_waits_its_turn(mind):
+    first = mind.handle({"type": "event", "event": ev("SessionStart", source="startup")})
+    mind.clock.at += timedelta(seconds=2)
+    assert mind.handle({"type": "pat", "zone": "head"}) == [] and mind.wait_s(30.0) == 1.0
+    run(first)  # her greeting lands at +2 s
+    mind.clock.at += timedelta(seconds=10)
+    assert mind.tick() == [], "her greeting gets the daemon's 20 seconds first"
+    mind.clock.at += timedelta(seconds=11)
+    assert run(mind.tick()) == 1
+    assert "The user patted her head while she was still speaking" in content(mind)
+    assert len(mind.said) == 2 and mind.held_pat is None and mind.wait_s(30.0) == 30.0
+
+
+def test_a_held_pat_is_let_go_after_a_minute(mind):
+    first = mind.handle({"type": "event", "event": ev("SessionStart", source="startup")})
+    mind.handle({"type": "pat", "zone": "tail"})
+    mind.clock.at += timedelta(seconds=61)
+    assert mind.tick() == [] and mind.held_pat is None
+    run(first)
+    assert len(mind.client.calls) == 1
+
+
+def test_a_pat_soon_after_a_line_waits_for_the_daemon_instead_of_being_lost(mind):
+    run(mind.handle({"type": "event", "event": ev("SessionStart", source="startup")}))
+    mind.clock.at += timedelta(seconds=5)
+    assert mind.handle({"type": "pat", "zone": "body"}) == [], "the daemon would refuse a line now"
+    mind.clock.at += timedelta(seconds=16)
+    assert run(mind.tick()) == 1 and "poked her while she was still speaking" in content(mind)
+
+
+def test_with_no_pause_pats_held_during_a_line_count_together(mind):
+    mind.handle({"type": "no_gap", "on": True})
+    first = mind.handle({"type": "event", "event": ev("SessionStart", source="startup")})
+    for zone in ("tail", "body", "head"):
+        mind.clock.at += timedelta(seconds=1)
+        assert mind.handle({"type": "pat", "zone": zone}) == []
+    run(first)
+    assert run(mind.tick()) == 1, "no interval to wait out with No pause"
+    assert "patted her head 3 times while she was still speaking" in content(mind)
+
+
+def test_nobody_at_the_desk_means_no_lines_but_a_pat_still_counts(mind):
+    mind.idle = lambda: 20 * 60.0
+    assert mind.handle({"type": "event", "event": ev("SessionStart", source="startup")}) == []
+    assert mind.client.calls == []
+    assert run(mind.handle({"type": "pat", "zone": "head"})) == 1
+
+
+def test_coming_back_to_the_desk_can_greet_from_a_tick(mind):
+    mind.idle = lambda: 1.0
+    assert run(mind.tick()) == 1
+    assert "here for the first time today" in content(mind)
+    assert json.loads(mind.files.state.read_text(encoding="utf-8"))["senses"]["last_seen"] == DAY.isoformat()
+
+
+def test_input_at_the_desk_is_saved_at_most_once_a_minute(mind):
+    def saved():
+        return json.loads(mind.files.state.read_text(encoding="utf-8"))["senses"]["last_seen"]
+
+    mind.idle = lambda: 1.0
+    run(mind.tick())
+    mind.clock.at += timedelta(seconds=30)
+    mind.tick()
+    assert saved() == DAY.isoformat()
+    mind.clock.at += timedelta(seconds=40)
+    mind.tick()
+    assert saved() == (DAY + timedelta(seconds=69)).isoformat()
+
+
+def test_an_odd_idle_reading_is_no_reading(mind):
+    for odd in ("x", -5, None):
+        mind.idle = lambda odd=odd: odd
+        assert mind.tick() == [] and mind.senses.input_idle is None
