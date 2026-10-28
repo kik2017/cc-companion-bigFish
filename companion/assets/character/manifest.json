@@ -1,0 +1,136 @@
+{
+  "format": 1,
+  "name": "whale-tail maid (dsh-pet)",
+  "frameSize": [
+    412,
+    344
+  ],
+  "license": "LICENSE.txt",
+  "clips": {
+    "dragging": {
+      "dir": "dragging",
+      "frameMs": 42,
+      "loop": true
+    },
+    "dragging_release": {
+      "dir": "dragging_release",
+      "frameMs": 42,
+      "loop": false
+    },
+    "eat_token": {
+      "dir": "eat_token",
+      "frameMs": 42,
+      "loop": false
+    },
+    "error": {
+      "dir": "error",
+      "frameMs": 42,
+      "loop": false
+    },
+    "head_pat": {
+      "dir": "head_pat",
+      "frameMs": 42,
+      "loop": false
+    },
+    "idle": {
+      "dir": "idle",
+      "frameMs": 42,
+      "loop": true
+    },
+    "idle_stretch": {
+      "dir": "idle_stretch",
+      "frameMs": 42,
+      "loop": false
+    },
+    "idle_yawn": {
+      "dir": "idle_yawn",
+      "frameMs": 42,
+      "loop": false
+    },
+    "poke": {
+      "dir": "poke",
+      "frameMs": 42,
+      "loop": false
+    },
+    "success": {
+      "dir": "success",
+      "frameMs": 42,
+      "loop": false
+    },
+    "tail": {
+      "dir": "tail",
+      "frameMs": 42,
+      "loop": false
+    },
+    "thinking": {
+      "dir": "thinking",
+      "frameMs": 42,
+      "loop": true
+    },
+    "waiting": {
+      "dir": "waiting",
+      "frameMs": 42,
+      "loop": true
+    },
+    "working": {
+      "dir": "working",
+      "frameMs": 42,
+      "loop": true
+    },
+    "working_command": {
+      "dir": "working_command",
+      "frameMs": 42,
+      "loop": true
+    },
+    "working_search": {
+      "dir": "working_search",
+      "frameMs": 42,
+      "loop": true
+    }
+  },
+  "states": {
+    "idle": "idle",
+    "thinking": "thinking",
+    "searching": "working_search",
+    "editing": "working",
+    "running": "working_command",
+    "delegating": "working",
+    "waiting": "waiting",
+    "done": "success",
+    "error": "error",
+    "compacting": "thinking"
+  },
+  "reactions": {
+    "head": "head_pat",
+    "body": "poke",
+    "tail": "tail",
+    "drag": "dragging",
+    "land": "dragging_release"
+  },
+  "idle": [
+    "idle_stretch",
+    "idle_yawn",
+    "eat_token"
+  ],
+  "moods": {
+    "happy": "tail",
+    "proud": "success",
+    "worried": "poke",
+    "sleepy": "idle_yawn",
+    "curious": "idle_stretch"
+  },
+  "zones": {
+    "head": [
+      0,
+      0,
+      1,
+      0.45
+    ],
+    "tail": [
+      0.72,
+      0.45,
+      1,
+      1
+    ]
+  }
+}

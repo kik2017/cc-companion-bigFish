@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "{{PYTHON}}", "args": ["{{ROOT}}/companion/launcher.py"], "timeout": 10 }] }],
+    "UserPromptSubmit": [{ "hooks": [
+      { "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 },
+      { "type": "command", "command": "{{PYTHON}}", "args": ["{{ROOT}}/companion/launcher.py", "--revive"], "async": true }
+    ] }],
+    "PreToolUse": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "PostToolUse": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "PostToolUseFailure": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "PostToolBatch": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "PermissionRequest": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "PermissionDenied": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "Notification": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "SubagentStart": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "SubagentStop": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "TaskCreated": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "TaskCompleted": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "Stop": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "StopFailure": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "PreCompact": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "PostCompact": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "PostModelSwitch": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "http", "url": "{{HOOK_URL}}", "timeout": 1 }] }]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "{{STATUSLINE_COMMAND}}",
+    "refreshInterval": 60
+  }
+}

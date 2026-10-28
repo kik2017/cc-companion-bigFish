@@ -1,0 +1,132 @@
+{
+  "format": 1,
+  "name": "placeholder",
+  "frameSize": [
+    200,
+    200
+  ],
+  "clips": {
+    "idle": {
+      "dir": "idle",
+      "frameMs": 125,
+      "loop": true
+    },
+    "thinking": {
+      "dir": "thinking",
+      "frameMs": 125,
+      "loop": true
+    },
+    "searching": {
+      "dir": "searching",
+      "frameMs": 125,
+      "loop": true
+    },
+    "editing": {
+      "dir": "editing",
+      "frameMs": 125,
+      "loop": true
+    },
+    "running": {
+      "dir": "running",
+      "frameMs": 125,
+      "loop": true
+    },
+    "delegating": {
+      "dir": "delegating",
+      "frameMs": 125,
+      "loop": true
+    },
+    "waiting": {
+      "dir": "waiting",
+      "frameMs": 125,
+      "loop": true
+    },
+    "done": {
+      "dir": "done",
+      "frameMs": 125,
+      "loop": false
+    },
+    "error": {
+      "dir": "error",
+      "frameMs": 125,
+      "loop": false
+    },
+    "compacting": {
+      "dir": "compacting",
+      "frameMs": 125,
+      "loop": true
+    },
+    "pat": {
+      "dir": "pat",
+      "frameMs": 100,
+      "loop": false
+    },
+    "poke": {
+      "dir": "poke",
+      "frameMs": 90,
+      "loop": false
+    },
+    "tail": {
+      "dir": "tail",
+      "frameMs": 100,
+      "loop": false
+    },
+    "drag": {
+      "dir": "drag",
+      "frameMs": 100,
+      "loop": true
+    },
+    "land": {
+      "dir": "land",
+      "frameMs": 90,
+      "loop": false
+    },
+    "idle_blink": {
+      "dir": "idle_blink",
+      "frameMs": 110,
+      "loop": false
+    },
+    "idle_hop": {
+      "dir": "idle_hop",
+      "frameMs": 110,
+      "loop": false
+    }
+  },
+  "states": {
+    "idle": "idle",
+    "thinking": "thinking",
+    "searching": "searching",
+    "editing": "editing",
+    "running": "running",
+    "delegating": "delegating",
+    "waiting": "waiting",
+    "done": "done",
+    "error": "error",
+    "compacting": "compacting"
+  },
+  "reactions": {
+    "head": "pat",
+    "body": "poke",
+    "tail": "tail",
+    "drag": "drag",
+    "land": "land"
+  },
+  "idle": [
+    "idle_blink",
+    "idle_hop"
+  ],
+  "zones": {
+    "head": [
+      0,
+      0,
+      1,
+      0.45
+    ],
+    "tail": [
+      0.72,
+      0.45,
+      1,
+      1
+    ]
+  }
+}

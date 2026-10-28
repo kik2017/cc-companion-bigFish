@@ -1,0 +1,12 @@
+{
+  "session_id": "0e053172-641b-480e-abdd-4ef991d70bee",
+  "transcript_path": "C:\\Users\\user\\.claude\\projects\\C--Users-user-projects-gate-project\\FIXTURE.jsonl",
+  "cwd": "C:\\Users\\user\\projects\\gate-project",
+  "prompt_id": "2bfd5897-a8ec-4862-9eb9-182c7e128afb",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "StopFailure",
+  "error": "authentication_failed",
+  "last_assistant_message": "FIXTURE-REPLY-TEXT"
+}

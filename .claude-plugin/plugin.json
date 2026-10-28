@@ -1,0 +1,15 @@
+{
+  "name": "cc-companion",
+  "version": "0.2.0",
+  "description": "A desktop pet that shows what Claude Code is doing, driven by hooks at zero token cost. Observe only: it never allows, denies or changes a tool call.",
+  "author": {
+    "name": "kik2017"
+  },
+  "license": "MIT AND CC-BY-NC-SA-4.0",
+  "keywords": [
+    "desktop",
+    "pet",
+    "status",
+    "hooks"
+  ]
+}

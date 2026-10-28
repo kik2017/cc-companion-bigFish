@@ -1,0 +1,399 @@
+import random
+from pathlib import Path
+
+import pytest
+
+from companion.animator import CLICK_COOLDOWN_S, REST_WINDOWS_S, Animator
+from companion.model import State
+from companion.skin import Clip, Skin, Zone
+
+STEP = 0.1  # every test clip runs 100 ms per frame
+
+
+def clip(name, frames=4, loop=True):
+    return Clip(name, tuple(Path(f"{name}/{i:04d}.png") for i in range(frames)), int(STEP * 1000), loop)
+
+
+def make_skin(idle=("blink", "hop")):
+    clips = [
+        clip("idle"), clip("think"), clip("work"), clip("wait"),
+        clip("done", loop=False), clip("error", loop=False),
+        clip("pat", loop=False), clip("poke", loop=False), clip("tail", loop=False),
+        clip("drag"), clip("land", frames=2, loop=False),
+        clip("blink", loop=False), clip("hop", loop=False), clip("yawn", loop=False),
+    ]  # fmt: skip
+    states = {
+        State.IDLE: "idle", State.THINKING: "think", State.COMPACTING: "think", State.WAITING: "wait",
+        State.SEARCHING: "work", State.EDITING: "work", State.RUNNING: "work", State.DELEGATING: "work",
+        State.DONE: "done", State.ERROR: "error",
+    }  # fmt: skip
+    reactions = {"head": "pat", "body": "poke", "tail": "tail", "drag": "drag", "land": "land"}
+    zones = (Zone("head", 0, 0, 1, 0.45), Zone("tail", 0.72, 0.45, 1, 1))
+    return Skin("test", Path("."), (100, 100), {c.name: c for c in clips}, states, reactions, idle, zones)
+
+
+def make(now=0.0, **kwargs):
+    return Animator(make_skin(kwargs.pop("idle", ("blink", "hop"))), now, rng=random.Random(7), **kwargs)
+
+
+def shown(anim, now):
+    frame = anim.frame(now)
+    return frame.clip, frame.index
+
+
+# --- state clips ------------------------------------------------------------------------
+
+
+def test_starts_on_the_idle_clip_and_loops():
+    anim = make()
+    assert shown(anim, 0.0) == ("idle", 0)
+    assert shown(anim, 0.25) == ("idle", 2)
+    assert shown(anim, 0.45) == ("idle", 0)
+
+
+def test_state_change_switches_clip_at_once_from_frame_zero():
+    anim = make()
+    anim.set_state(State.EDITING, 0.33)
+    assert shown(anim, 0.33) == ("work", 0)
+
+
+def test_states_sharing_a_looping_clip_carry_on_without_restart():
+    anim = make()
+    anim.set_state(State.EDITING, 0.0)
+    anim.set_state(State.RUNNING, 0.25)
+    assert shown(anim, 0.25) == ("work", 2)
+
+
+def test_repeated_state_does_not_restart():
+    anim = make()
+    anim.set_state(State.THINKING, 0.0)
+    anim.set_state(State.THINKING, 0.25)
+    assert shown(anim, 0.25) == ("think", 2)
+
+
+def test_non_looping_state_clip_holds_its_last_frame():
+    anim = make()
+    anim.set_state(State.DONE, 0.0)
+    assert shown(anim, 5.0) == ("done", 3)
+    assert anim.next_change(5.0) is None
+
+
+# --- click reactions --------------------------------------------------------------------
+
+
+def test_pat_during_editing_plays_through_and_returns_to_editing():
+    anim = make()
+    anim.set_state(State.EDITING, 0.0)
+    assert anim.click("head", 1.0)
+    assert [shown(anim, 1.0 + i * STEP)[0] for i in range(4)] == ["pat"] * 4
+    assert shown(anim, 1.0 + 4 * STEP + 0.001) == ("work", 0)
+
+
+def test_each_zone_has_its_reaction():
+    for zone, expected in (("head", "pat"), ("body", "poke"), ("tail", "tail")):
+        anim = make()
+        assert anim.click(zone, 1.0)
+        assert shown(anim, 1.0)[0] == expected
+
+
+def test_state_change_interrupts_a_click_reaction():
+    anim = make()
+    anim.click("body", 1.0)
+    anim.set_state(State.RUNNING, 1.1)
+    assert shown(anim, 1.1) == ("work", 0)
+
+
+def test_click_ignored_while_a_reaction_plays_and_during_cooldown():
+    anim = make()
+    assert anim.click("body", 1.0)
+    assert not anim.click("head", 1.2), "a reaction is playing"
+    assert not anim.click("head", 1.0 + CLICK_COOLDOWN_S - 0.01), "cooldown"
+    assert anim.click("head", 1.0 + CLICK_COOLDOWN_S)
+
+
+def test_cooldown_survives_a_state_interrupt():
+    anim = make()
+    anim.click("body", 1.0)
+    anim.set_state(State.THINKING, 1.1)
+    assert not anim.click("body", 1.5)
+
+
+def test_click_ignored_while_done_plays_then_allowed_once_it_holds():
+    anim = make()
+    anim.set_state(State.DONE, 0.0)
+    assert not anim.click("head", 0.2)
+    assert anim.click("head", 0.5)
+
+
+def test_double_click_turns_its_first_click_into_a_head_pat():
+    anim = make()
+    assert anim.click("body", 1.0)
+    assert anim.double_click(1.2)
+    assert shown(anim, 1.2) == ("pat", 0)
+
+
+def test_double_click_alone_is_a_head_pat():
+    anim = make()
+    assert anim.double_click(1.0)
+    assert shown(anim, 1.0)[0] == "pat"
+
+
+# --- drag -------------------------------------------------------------------------------
+
+
+def test_drag_loops_hover_and_holds_state_changes_until_it_lands():
+    anim = make()
+    anim.drag_start(1.0)
+    assert shown(anim, 1.0)[0] == "drag"
+    anim.set_state(State.EDITING, 1.2)
+    assert shown(anim, 3.05) == ("drag", 0), "hover loops while held; state waits"
+    anim.drag_end(3.1)
+    assert shown(anim, 3.1) == ("land", 0)
+    assert shown(anim, 3.25) == ("land", 1)
+    assert shown(anim, 3.31) == ("work", 0), "after landing, the latest state"
+
+
+def test_drag_interrupts_a_click_reaction():
+    anim = make()
+    anim.click("body", 1.0)
+    anim.drag_start(1.1)
+    assert shown(anim, 1.1)[0] == "drag"
+
+
+# --- idle clips -------------------------------------------------------------------------
+
+
+def test_idle_clip_after_rest_window_then_back_to_idle():
+    anim = make()
+    low, high = REST_WINDOWS_S["normal"]
+    due = anim.idle_due
+    assert low <= due <= high
+    assert shown(anim, due - 0.01)[0] == "idle"
+    first = shown(anim, due)[0]
+    assert first in ("blink", "hop")
+    assert shown(anim, due + 0.41)[0] == "idle"
+    assert low <= anim.idle_due - (due + 0.4) <= high, "rest restarts when the idle clip ends"
+
+
+def test_idle_clips_never_repeat_back_to_back():
+    anim = make()
+    picks = []
+    now = 0.0
+    for _ in range(12):
+        now = anim.idle_due
+        picks.append(shown(anim, now)[0])
+        now += 0.5
+        anim.frame(now)
+    assert all(a != b for a, b in zip(picks, picks[1:]))
+
+
+def test_state_change_during_idle_clip_switches_at_once():
+    anim = make()
+    due = anim.idle_due
+    shown(anim, due)
+    anim.set_state(State.THINKING, due + 0.05)
+    assert shown(anim, due + 0.05) == ("think", 0)
+    assert anim.idle_due is None
+
+
+def test_no_idle_clips_outside_idle():
+    anim = make()
+    anim.set_state(State.WAITING, 0.0)
+    assert anim.idle_due is None
+    assert shown(anim, 200.0)[0] == "wait"
+
+
+def test_activity_sets_the_rest_window():
+    anim = make(activity="quiet")
+    assert REST_WINDOWS_S["quiet"][0] <= anim.idle_due <= REST_WINDOWS_S["quiet"][1]
+
+
+def test_skin_without_idle_clips_never_schedules_one():
+    anim = make(idle=())
+    assert anim.idle_due is None
+
+
+# --- reduced motion ---------------------------------------------------------------------
+
+
+def test_reduced_motion_holds_the_pose_for_60_s():
+    anim = make(reduced_motion=True)
+    frames = {anim.frame(t * 0.042).path for t in range(int(60 / 0.042))}
+    assert len(frames) == 1
+    assert anim.next_change(10.0) is None
+
+
+def test_reduced_motion_ignores_clicks_and_drags_but_follows_state():
+    anim = make(reduced_motion=True)
+    assert not anim.click("head", 1.0)
+    anim.drag_start(1.0)
+    anim.set_state(State.EDITING, 2.0)
+    assert shown(anim, 2.5) == ("work", 0)
+
+
+# --- live settings ----------------------------------------------------------------------
+
+
+def test_reduced_motion_on_during_a_click_reaction_holds_the_state_pose():
+    anim = make()
+    anim.set_state(State.EDITING, 0.0)
+    assert anim.click("head", 1.0)
+    anim.set_reduced_motion(True, 1.15)
+    assert anim.reaction is None
+    assert shown(anim, 1.15) == ("work", 0)
+    assert shown(anim, 30.0) == ("work", 0)
+    assert anim.next_change(1.15) is None
+
+
+def test_reduced_motion_on_during_an_idle_clip_drops_it_and_the_schedule():
+    anim = make()
+    due = anim.idle_due
+    assert shown(anim, due)[0] in ("blink", "hop")
+    anim.set_reduced_motion(True, due + 0.1)
+    assert anim.idle_clip is None and anim.idle_due is None
+    assert shown(anim, due + 0.1) == ("idle", 0)
+    assert anim.next_change(due + 0.1) is None
+
+
+def test_reduced_motion_on_during_a_drag_drops_it_and_the_release_lands_nothing():
+    anim = make()
+    anim.drag_start(1.0)
+    anim.set_reduced_motion(True, 1.2)
+    anim.drag_end(1.5)
+    assert anim.reaction is None
+    assert shown(anim, 1.5) == ("idle", 0)
+
+
+def test_reduced_motion_off_while_idle_schedules_an_idle_clip():
+    anim = make(reduced_motion=True)
+    assert anim.idle_due is None
+    anim.set_reduced_motion(False, 10.0)
+    low, high = REST_WINDOWS_S["normal"]
+    assert 10.0 + low <= anim.idle_due <= 10.0 + high
+    assert shown(anim, 10.25) == ("idle", 2), "the state clip plays again from the switch"
+    assert anim.next_change(10.25) == pytest.approx(10.3)
+    assert shown(anim, anim.idle_due)[0] in ("blink", "hop")
+
+
+def test_reduced_motion_off_restarts_a_shared_looping_clip_from_frame_zero():
+    anim = make()
+    anim.set_state(State.EDITING, 0.0)
+    anim.set_reduced_motion(True, 0.25)
+    anim.set_reduced_motion(False, 0.35)
+    assert shown(anim, 0.35) == ("work", 0)
+    assert anim.idle_due is None, "no idle clips outside idle"
+
+
+def test_set_activity_reschedules_into_the_new_rest_window():
+    anim = make(activity="quiet")
+    anim.set_activity("lively", 5.0)
+    low, high = REST_WINDOWS_S["lively"]
+    assert anim.activity == "lively"
+    assert 5.0 + low <= anim.idle_due <= 5.0 + high
+
+
+def test_set_activity_during_an_idle_clip_does_not_interrupt_it():
+    anim = make()
+    due = anim.idle_due
+    playing = shown(anim, due)[0]
+    anim.set_activity("lively", due + 0.15)
+    assert shown(anim, due + 0.15) == (playing, 1)
+    assert anim.idle_due is None
+    end = due + 0.4
+    assert shown(anim, end + 0.01)[0] == "idle"
+    low, high = REST_WINDOWS_S["lively"]
+    assert low <= anim.idle_due - end <= high, "the next rest uses the new level"
+
+
+def test_set_activity_outside_idle_schedules_nothing():
+    anim = make()
+    anim.set_state(State.RUNNING, 0.0)
+    anim.set_activity("lively", 1.0)
+    assert anim.idle_due is None
+
+
+def test_setters_are_no_ops_when_the_value_is_unchanged():
+    anim = make()
+    anim.set_state(State.EDITING, 0.0)
+    assert anim.click("head", 1.0)
+    anim.set_reduced_motion(False, 1.1)
+    assert shown(anim, 1.1) == ("pat", 1), "the reaction plays on"
+
+    anim = make(reduced_motion=True)
+    started = anim.started
+    anim.set_reduced_motion(True, 5.0)
+    assert anim.started == started and anim.idle_due is None
+
+    anim = make()
+    due = anim.idle_due
+    anim.set_activity("normal", 3.0)
+    assert anim.idle_due == due, "the rest window is not redrawn"
+
+
+# --- scheduling and fades ---------------------------------------------------------------
+
+
+def test_next_change_is_the_next_frame_boundary():
+    anim = make()
+    assert anim.next_change(0.25) == pytest.approx(0.3)
+
+
+def test_next_change_includes_the_end_of_a_reaction():
+    anim = make()
+    anim.click("body", 1.0)
+    assert anim.next_change(1.35) == pytest.approx(1.4)
+
+
+def test_fades_between_clips_but_not_around_drag():
+    anim = make()
+    assert anim.fades("idle", "work")
+    assert not anim.fades("work", "work")
+    assert not anim.fades("idle", "drag")
+    assert not anim.fades("land", "idle")
+
+# --- mood clips -------------------------------------------------------------------------
+
+
+def mood(anim):
+    return anim.skin.clips["yawn"]
+
+
+def test_a_mood_plays_while_idle_then_returns_to_idle():
+    anim = make()
+    assert anim.play_mood(mood(anim), 1.0)
+    assert shown(anim, 1.0) == ("yawn", 0)
+    assert anim.idle_due is None  # no idle clip lands on top of it
+    assert shown(anim, 1.0 + 4 * STEP + 0.01) == ("idle", 0)
+    assert anim.idle_due is not None
+
+
+def test_a_state_change_interrupts_a_mood_at_once():
+    anim = make()
+    anim.play_mood(mood(anim), 1.0)
+    anim.set_state(State.THINKING, 1.1)
+    assert shown(anim, 1.1) == ("think", 0)
+
+
+@pytest.mark.parametrize("state", [State.THINKING, State.WAITING, State.DONE, State.ERROR])
+def test_no_mood_outside_idle(state):
+    anim = make()
+    anim.set_state(state, 0.0)
+    assert not anim.play_mood(mood(anim), 0.5)
+    assert shown(anim, 0.5)[0] != "yawn"
+
+
+def test_a_mood_never_cuts_a_reaction_or_an_idle_clip():
+    anim = make()
+    anim.click("head", 0.0)
+    assert not anim.play_mood(mood(anim), 0.1)
+    assert shown(anim, 0.1)[0] == "pat"
+    later = make()
+    due = later.idle_due
+    later.update(due)
+    assert later.idle_clip is not None
+    assert not later.play_mood(mood(later), due + 0.05)
+
+
+def test_reduced_motion_plays_no_mood():
+    anim = make(reduced_motion=True)
+    assert not anim.play_mood(mood(anim), 0.0)

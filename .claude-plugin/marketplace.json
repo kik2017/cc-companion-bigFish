@@ -1,0 +1,14 @@
+{
+  "name": "cc-companion",
+  "owner": {
+    "name": "kik2017"
+  },
+  "description": "cc-companion, a desktop pet for Claude Code, installed from a local clone.",
+  "plugins": [
+    {
+      "name": "cc-companion",
+      "source": "./",
+      "description": "A desktop pet that shows what Claude Code is doing, driven by hooks at zero token cost."
+    }
+  ]
+}

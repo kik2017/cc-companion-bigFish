@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77"]  # SPDX license field (PEP 639)
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cc-companion"
+version = "0.2.0"
+description = "Desktop pet for Claude Code, driven by hooks and the status line"
+readme = "README.md"
+license = "MIT AND CC-BY-NC-SA-4.0"
+# The code is MIT; the bundled character's art is CC BY-NC-SA 4.0 (non-commercial), with its credits.
+license-files = ["LICENSE", "companion/assets/character/LICENSE.txt"]
+authors = [{ name = "kik2017" }]
+requires-python = ">=3.11"
+dependencies = ["PySide6>=6.7,<7"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+# The persona's mind (python -m mind): the only part that calls the network.
+mind = ["anthropic>=1,<2"]
+# The portable build (python packaging/build.py).
+build = ["pyinstaller>=6,<7"]
+
+[tool.setuptools]
+packages = ["companion", "mind"]
+
+[tool.setuptools.package-data]
+companion = ["assets/**/*"]
+mind = ["identity.example.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
