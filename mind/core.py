@@ -15,6 +15,10 @@ fast), is held, and tick() asks for it once she is free and the interval has pas
 held meanwhile count together; one that waited over PAT_WAIT is let go. While a pat is
 held, the main loop ticks every PAT_POLL_S (wait_s()).
 
+Moments that come in one batch with her greeting or "back" (a milestone on a new day,
+say) are told in that line, when it gets one, instead of each losing to it; if the
+greeting gets no line, each has its own chance as usual.
+
 Each tick also reads the desk: the seconds since the last keyboard or mouse input, from
 the `idle` function (idle.py), handed to the senses. Away from the desk she keeps her lines.
 
@@ -72,6 +76,7 @@ RECENT_KEPT = 20
 PAT_WAIT = timedelta(seconds=60)
 PAT_POLL_S = 1.0
 SEEN_SAVE = timedelta(minutes=1)  # input at the desk moves last_seen every tick; it is saved at most this often
+GREETINGS = ("greeting", "back")  # moments that come with these are told in their line
 
 
 def clean_chat(raw: object) -> str | None:
@@ -170,7 +175,7 @@ class Mind:
                 return jobs
             else:
                 return []
-            jobs = [job for moment in moments if (job := self._react(moment, now)) is not None]
+            jobs = self._react_all(moments, now)
             self._save()
         return jobs
 
@@ -178,7 +183,7 @@ class Mind:
         now = self.now()
         with self.lock:
             moments = self.senses.on_idle(self._idle(), now) + self.senses.tick(now)
-            jobs = [job for moment in moments if (job := self._react(moment, now)) is not None]
+            jobs = self._react_all(moments, now)
             if (pat := self._held_pat_job(now)) is not None:
                 jobs.append(pat)
             seen, saved = self.senses.last_seen, self.saved_seen
@@ -224,15 +229,38 @@ class Mind:
 
     # --- reacting ------------------------------------------------------------------------
 
-    def _react(self, moment: Moment, now: datetime) -> Job | None:
-        """Log the moment, move her mood, and return a job if it is worth a line."""
-        mood = self.mood.apply(moment.kind, now)
-        self._remember(now, "moment", moment=moment.kind, **_redacted(moment.detail, self.redact))
+    def _react_all(self, moments: list[Moment], now: datetime) -> list[Job]:
+        """React to one batch of moments. Those that come with her greeting (or "back") are told in its line, if it
+        gets one, rather than each losing to the line already on its way; otherwise each has its own chance."""
+        lead = next((m for m in moments if m.kind in GREETINGS), None)
+        riders = [m for m in moments if lead is not None and m is not lead]
+        if not riders:
+            return [job for moment in moments if (job := self._react(moment, now)) is not None]
+        was_busy = self.busy
+        jobs = [job] if (job := self._react(lead, now, also=riders)) is not None else []
+        told = self.busy and not was_busy  # the lead asked for a line, and that line carries the riders
+        for moment in riders:
+            if told:
+                self._note(moment, now)
+                log.info("moment %s: told with her %s", moment.kind, lead.kind)
+            elif (job := self._react(moment, now)) is not None:
+                jobs.append(job)
+        return jobs
+
+    def _react(self, moment: Moment, now: datetime, also: list[Moment] | tuple = ()) -> Job | None:
+        """Log the moment, move her mood, and return a job if it is worth a line (one that also tells `also`)."""
+        mood = self._note(moment, now)
         if self.mode == "quiet" or self.voice is None:
             return self._mood_only(moment, mood)
-        return self._line(moment, now, mood)
+        return self._line(moment, now, mood, also)
 
-    def _line(self, moment: Moment, now: datetime, mood: str) -> Job | None:
+    def _note(self, moment: Moment, now: datetime) -> str:
+        """Log the moment in her episodes and move her mood; her mood now."""
+        mood = self.mood.apply(moment.kind, now)
+        self._remember(now, "moment", moment=moment.kind, **_redacted(moment.detail, self.redact))
+        return mood
+
+    def _line(self, moment: Moment, now: datetime, mood: str, also: list[Moment] | tuple = ()) -> Job | None:
         """The job that asks for a line, if her budget allows one now; a pat that must wait is held."""
         waiting = self.senses.display.get("state") == "waiting"
         reason = self.budget.why_not(moment.kind, now, waiting, away=self._away())
@@ -260,6 +288,7 @@ class Mind:
             recent=[line for day, line in self.recent if day == day_of(now).isoformat()][-5:],
             project=self.redact,
             dream=dream,
+            also=[(m.kind, m.detail) for m in also],
         )
         log.info("moment %s: asking for a line", moment.kind)
         return lambda: self._speak(moment, system, user, mood)

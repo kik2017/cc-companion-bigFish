@@ -161,8 +161,16 @@ def user_prompt(
     recent: list[str],
     project,
     dream: str | None = None,
+    also: list[tuple[str, dict]] | tuple = (),
 ) -> str:
-    lines = [describe_moment(kind, detail, project), f"Local time: {now.strftime('%A %d %B, %H:%M')}."]
+    """The moment's prompt; `also` holds (kind, detail) of moments that came with it, told in the same line."""
+    lines = [describe_moment(kind, detail, project)]
+    if also:
+        lines.append(
+            "At the same moment: " + " ".join(describe_moment(k, d, project) for k, d in also)
+            + " She may mention it too, briefly, if it fits."
+        )
+    lines.append(f"Local time: {now.strftime('%A %d %B, %H:%M')}.")
     if dream:
         lines.append(f"Last night she dreamt this (she may mention it, briefly, if it fits): {dream}")
     lines += _context(display=display, today=today, mood=mood, energy=energy, project=project)

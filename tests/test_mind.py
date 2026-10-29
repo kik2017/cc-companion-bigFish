@@ -1260,3 +1260,54 @@ def test_the_search_message_and_config_accept_only_real_settings(mind):
     mind_files.write_json(mind.files.config, {"search": 25, "searches_per_day": 0})
     config = mind.files.load_config()
     assert config["search"] == 25 and config["searches_per_day"] == 0
+
+
+# --- moments that come with her greeting -------------------------------------------------------
+
+
+def test_a_milestone_that_comes_with_her_greeting_is_told_in_it(mind, caplog):
+    caplog.set_level("INFO", logger="mind")
+    run(mind.handle({"type": "event", "event": ev("UserPromptSubmit")}))
+    mind.clock.at = DAY + timedelta(days=1)
+    jobs = mind.handle({"type": "event", "event": ev("UserPromptSubmit")})
+    assert run(jobs) == 1, "one line for both"
+    prompt = mind.client.calls[-1]["messages"][0]["content"]
+    assert prompt.startswith("Greeting: the user is here for the first time today.\nAt the same moment: Milestone: day 2")
+    assert "She may mention it too, briefly, if it fits." in prompt
+    assert "moment milestone: told with her greeting" in [r.getMessage() for r in caplog.records]
+    day_two = mind.files.episodes / "2026-10-29.jsonl"
+    records = [json.loads(line) for line in day_two.read_text(encoding="utf-8").splitlines()]
+    moments = [r for r in records if r["kind"] == "moment"]
+    assert [m["moment"] for m in moments] == ["greeting", "milestone"], "both are remembered, as they were"
+    assert all("also" not in m for m in moments)
+
+
+def test_when_her_greeting_gets_no_line_the_others_have_their_own_chance(mind):
+    from mind.senses import Moment
+
+    mind.clock.at = night = datetime(2026, 10, 29, 1, 30)
+    batch = [Moment("greeting", {"first_today": False, "hours_away": 3}), Moment("late_night", {"time": "01:30"})]
+    jobs = mind._react_all(batch, night)
+    assert run(jobs) == 1
+    prompt = mind.client.calls[-1]["messages"][0]["content"]
+    assert prompt.startswith("It is late at night (01:30)") and "At the same moment" not in prompt
+
+
+def test_a_batch_without_a_greeting_is_as_before(mind):
+    from mind.senses import Moment
+
+    jobs = mind._react_all([Moment("long_done", {"minutes": 12}), Moment("milestone", {"turns_done": 50})], DAY)
+    assert run(jobs) == 1 and "At the same moment" not in mind.client.calls[-1]["messages"][0]["content"]
+
+
+def test_the_prompt_tells_what_came_with_the_moment():
+    text = user_prompt(
+        "back", {"minutes_away": 25}, now=DAY, display={}, today={}, mood="calm", energy=50, recent=[],
+        project=Redactor(False), also=[("milestone", {"turns_done": 100}), ("day_part", {"part": "evening", "time": "18:00"})],
+    )
+    first, second = text.splitlines()[:2]
+    assert first == "The user is back at the desk after about 25 minutes away."
+    assert second == (
+        "At the same moment: Milestone: 100 turns of work finished together since she arrived. "
+        "A new part of the day has begun: it is evening now (18:00). She may mention it too, briefly, if it fits."
+    )
