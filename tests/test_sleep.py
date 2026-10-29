@@ -400,11 +400,12 @@ def test_the_mind_sleeps_when_it_starts_and_tells_the_dream_in_the_morning(files
         return None, {}
 
     voice.speak = speak
-    mind = Mind(files, files.load_config(), voice, lambda text, mood: said.append((text, mood)) or 204, now=clock)
+    cues = []
+    mind = Mind(files, files.load_config(), voice, lambda text, mood, **kw: said.append((text, mood)) or cues.append(kw.get("cue")) or 204, now=clock)
     jobs = mind.tick()
     assert len(jobs) == 1 and mind.busy
     jobs[0]()
-    assert not mind.busy and said[0] == (None, "sleepy")
+    assert not mind.busy and said[0] == (None, "sleepy") and cues[0] == "sleep", "she naps as she falls asleep"
     assert read_json(files.sleep)["days"]["2026-10-27"]["done"] is True
     assert mind.tick() == [], "nothing left to sleep on"
     for job in mind.handle({"type": "event", "event": {"hook_event_name": "SessionStart", "session_id": "s", "source": "startup"}}):
@@ -418,7 +419,7 @@ def test_the_mind_sleeps_when_it_starts_and_tells_the_dream_in_the_morning(files
 def test_the_mind_waits_for_you_to_be_away_before_sleeping(files):
     a_day(files)
     clock = Clock(at("13:10", next_day=True))
-    mind = Mind(files, files.load_config(), FakeVoice(), lambda text, mood: 204, now=clock)
+    mind = Mind(files, files.load_config(), FakeVoice(), lambda text, mood, **kw: 204, now=clock)
     mind.just_started = False
     mind.senses.last_activity = clock.when - timedelta(minutes=5)
     assert mind.tick() == []
@@ -431,7 +432,7 @@ def test_a_greeting_at_start_does_not_cancel_the_catch_up_sleep(files):
     clock = Clock(at("13:10", next_day=True))
     voice = FakeVoice()
     voice.speak = lambda system, user: (None, {})
-    mind = Mind(files, files.load_config(), voice, lambda text, mood: 204, now=clock)
+    mind = Mind(files, files.load_config(), voice, lambda text, mood, **kw: 204, now=clock)
     start = {"hook_event_name": "SessionStart", "session_id": "s", "source": "startup"}
     greeting = mind.handle({"type": "event", "event": start})  # the hook that launched her
     assert len(greeting) == 1 and mind.tick() == [], "the greeting is on its way"
@@ -448,7 +449,7 @@ def test_known_facts_reach_her_lines(files):
     seen = []
     voice = FakeVoice()
     voice.speak = lambda system, user: seen.append(system) or (None, {})
-    mind = Mind(files, files.load_config(), voice, lambda text, mood: 204, now=Clock(at("13:10", next_day=True)))
+    mind = Mind(files, files.load_config(), voice, lambda text, mood, **kw: 204, now=Clock(at("13:10", next_day=True)))
     for job in mind.handle({"type": "pat", "zone": "head"}):
         job()
     assert "<known>" in seen[0] and "- often works past midnight" in seen[0]

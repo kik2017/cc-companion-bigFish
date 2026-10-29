@@ -117,8 +117,12 @@ def test_the_bundled_character_loads_with_its_license_and_source():
     skin = skins.load_skin(skins.default_dir())
     assert set(skin.states) == set(State)
     assert set(skin.reactions) == set(skins.REACTIONS)
-    assert skin.frame_size == (412, 344)
-    assert sum(len(clip.frames) for clip in skin.clips.values()) == 3444
+    assert skin.frame_size == (528, 360)
+    assert len({clip.frames[0].parent for clip in skin.clips.values()}) == 42
+    assert sum(len(clip.frames) for name, clip in skin.clips.items() if not name.endswith("_once")) == 9710
+    assert len(skin.talk) == 3 and set(skin.cues) == set(skins.CUES) and skin.wake == "startled"
+    assert len(skin.usage) == 6 and {t.clip for t in skin.timed} >= {"breakfast", "lunch", "dinner", "nap"}
+    assert all(len(skin.reactions[zone]) >= 2 for zone in ("head", "body", "tail"))
     license_text = skin.license.read_text(encoding="utf-8")
     # Must ship with the frames: the art terms and every credit, and never an MIT claim for the art.
     for part in ("CC BY-NC-SA 4.0", "NOT covered by the MIT license", "https://github.com/PC2005-cloud/dsh-pet", "ZipZipPipe", "上善无形"):
@@ -131,9 +135,9 @@ def test_the_bundled_character_loads_with_its_license_and_source():
 
 def test_a_mood_without_a_manifest_entry_falls_back_to_a_reaction(pack):
     skin = skins.load_skin(pack())
-    assert skin.mood_clip("happy").name == skin.reactions["tail"]
-    assert skin.mood_clip("proud").name == skin.reactions["head"]
-    assert skin.mood_clip("worried").name == skin.reactions["body"]
+    assert skin.mood_clip("happy").name == skin.reaction_clip("tail").name
+    assert skin.mood_clip("proud").name == skin.reaction_clip("head").name
+    assert skin.mood_clip("worried").name == skin.reaction_clip("body").name
     assert skin.mood_clip("calm") is None
     assert skin.mood_clip("no-such-mood") is None
 
@@ -142,7 +146,7 @@ def test_manifest_moods_override_the_fallback(pack):
     skin = skins.load_skin(pack(moods={"happy": "idle_hop", "sleepy": "idle_blink"}))
     assert skin.mood_clip("happy").name == "idle_hop"
     assert skin.mood_clip("sleepy").name == "idle_blink"
-    assert skin.mood_clip("proud").name == skin.reactions["head"]
+    assert skin.mood_clip("proud").name == skin.reaction_clip("head").name
 
 
 @pytest.mark.parametrize(
@@ -162,3 +166,65 @@ def test_bad_moods_are_rejected(pack, moods, message):
 def test_the_bundled_character_maps_every_mood_but_calm():
     skin = skins.load_skin(skins.default_dir())
     assert {m for m in MOODS if skin.mood_clip(m) is not None} == set(MOODS) - {"calm"}
+
+
+# --- variants, talking, cues, wake, times of day and usage ------------------------------------
+
+
+def test_states_and_reactions_may_name_several_clips(pack):
+    states = {**pack.manifest["states"], "editing": ["editing", "running"]}
+    reactions = {**pack.manifest["reactions"], "body": ["poke", "idle_hop"]}
+    skin = skins.load_skin(pack(states=states, reactions=reactions))
+    assert [c.name for c in skin.state_clips(State.EDITING)] == ["editing", "running"]
+    assert skin.state_clip(State.EDITING).name == "editing", "the first is the one reduced motion holds"
+    assert [c.name for c in skin.reaction_clips("body")] == ["poke", "idle_hop"]
+    assert skin.states[State.IDLE] == ("idle",)
+
+
+def test_a_pack_without_the_new_sections_has_none_of_them():
+    skin = skins.load_skin(PLACEHOLDER)
+    assert (skin.talk, skin.cues, skin.wake, skin.timed, skin.usage) == ((), {}, None, (), ())
+    assert skin.talk_clips() == () and skin.cue_clips("greet") == () and skin.usage_tier(50) is None
+
+
+def test_talk_cues_wake_timed_and_usage_load(pack):
+    skin = skins.load_skin(pack(
+        talk=["idle_blink"], cues={"greet": ["idle_hop", "pat"], "sleep": "idle_blink"},
+        wake={"during": ["idle_blink"], "clip": "idle_hop"},
+        timed=[{"clip": "idle_hop", "from": "07:00", "to": "09:30"}, {"clip": "idle_blink", "from": "23:30", "to": "02:00"}],
+        usage=["idle_blink", "idle_hop", "pat"],
+    ))  # fmt: skip
+    assert [c.name for c in skin.cue_clips("greet")] == ["idle_hop", "pat"] and skin.cue_clips("nope") == ()
+    assert skin.wake == "idle_hop" and skin.wake_during == {"idle_blink"}
+    breakfast, night = skin.timed
+    assert (breakfast.start, breakfast.end) == (420, 570) and breakfast.contains(420) and not breakfast.contains(570)
+    assert night.contains(23 * 60 + 45) and night.contains(30) and not night.contains(2 * 60)
+    assert [skin.usage_tier(p) for p in (0, 49.9, 50, 99, 100, 140)] == [0, 0, 1, 1, 2, 2]
+
+
+@pytest.mark.parametrize(
+    "change, message",
+    [
+        ({"states": {**json.loads((PLACEHOLDER / "manifest.json").read_text(encoding="utf-8"))["states"], "idle": []}}, "empty list"),
+        ({"talk": ["idle"]}, "must not loop"),
+        ({"talk": "idle_blink"}, "talk must be a list"),
+        ({"cues": {"wave": "idle_blink"}}, "unknown cue"),
+        ({"cues": {"greet": "idle"}}, "must not loop"),
+        ({"wake": {"clip": "idle_hop"}}, "wake must be"),
+        ({"wake": {"during": ["idle_blink"], "clip": "nope"}}, "unknown clip"),
+        ({"timed": [{"clip": "idle_hop", "from": "7:00", "to": "09:00"}]}, "HH:MM"),
+        ({"timed": [{"clip": "idle_hop", "from": "24:00", "to": "09:00"}]}, "HH:MM"),
+        ({"timed": [{"clip": "idle_hop", "from": "09:00", "to": "09:00"}]}, "no length"),
+        ({"timed": [{"clip": "idle", "from": "07:00", "to": "09:00"}]}, "must not loop"),
+        ({"usage": ["idle_blink", "drag"]}, "must not loop"),
+    ],
+)
+def test_bad_new_sections_are_rejected_with_a_reason(pack, change, message):
+    with pytest.raises(skins.SkinError, match=message):
+        skins.load_skin(pack(**change))
+
+
+def test_every_drag_clip_must_loop(pack):
+    reactions = {**pack.manifest["reactions"], "drag": ["drag", "land"]}
+    with pytest.raises(skins.SkinError, match="must loop"):
+        skins.load_skin(pack(reactions=reactions))

@@ -41,11 +41,13 @@ def setup_logging() -> None:
 
 
 def say_sender(token: str):
-    def say(text: str | None, mood: str, reply: bool = False) -> int:
-        """POST one line (or a mood alone); a reply answers the chat box and stays up longer."""
+    def say(text: str | None, mood: str, reply: bool = False, cue: str | None = None) -> int:
+        """POST one line (or a mood alone); a reply answers the chat box and stays up longer; a cue plays its clip."""
         body = {"mood": mood} if text is None else {"text": text, "mood": mood, "ttl_s": 15 if reply else 10}
         if reply:
             body["reply"] = True
+        if cue:
+            body["cue"] = cue
         try:
             conn = http.client.HTTPConnection(HOST, port_from_env(), timeout=3)
             conn.request(

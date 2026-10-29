@@ -20,7 +20,8 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 
 - **Shows Claude Code's state:** thinking, reading and searching, editing files, running a command, delegating to subagents, waiting for you, done, errors and compacting.
 - **A status bubble** with the project, model, reasoning effort, subagents, task progress, how full the context is, and your 5-hour and 7-day usage.
-- **Reacts to you:** drag her anywhere, pat her head, poke her, touch her tail.
+- **Reacts to you:** drag her anywhere, pat her head, poke her, touch her tail, each with a few reactions she picks from; wake her from a nap.
+- **Lives through the day:** over 40 animations, from humming and stretching to breakfast, lunch, dinner and a nap after lunch, and a purse that empties as your 5-hour usage climbs.
 - **Can talk (optional):** with your own Anthropic API key she says short lines at moments that matter, answers when you chat with her (and can look things up on the web, if you let her), and sleeps each night: she writes a diary, sorts out what she has learned about you, and sometimes dreams.
 
 ## See her move
@@ -29,16 +30,22 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 
 <table>
 <tr>
-<td align="center"><img src="docs/images/anim/idle.webp" width="165" alt="Idle: standing calmly"><br><sub>Idle</sub></td>
-<td align="center"><img src="docs/images/anim/thinking.webp" width="165" alt="Thinking"><br><sub>Thinking · compacting</sub></td>
-<td align="center"><img src="docs/images/anim/editing.webp" width="165" alt="Editing files"><br><sub>Editing · delegating</sub></td>
-<td align="center"><img src="docs/images/anim/running.webp" width="165" alt="Running a command"><br><sub>Running a command</sub></td>
+<td align="center"><img src="docs/images/anim/idle.webp" width="190" alt="Idle: standing calmly"><br><sub>Idle</sub></td>
+<td align="center"><img src="docs/images/anim/thinking.webp" width="190" alt="Thinking"><br><sub>Thinking</sub></td>
+<td align="center"><img src="docs/images/anim/deep_thought.webp" width="190" alt="Thinking hard"><br><sub>Thinking</sub></td>
+<td align="center"><img src="docs/images/anim/look_around.webp" width="190" alt="Looking around"><br><sub>Searching</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/images/anim/waiting.webp" width="165" alt="Searching, or waiting for you"><br><sub>Searching · waiting for you</sub></td>
-<td align="center"><img src="docs/images/anim/done.webp" width="165" alt="Done"><br><sub>Done</sub></td>
-<td align="center"><img src="docs/images/anim/error.webp" width="165" alt="Stopped on an error"><br><sub>Error</sub></td>
-<td></td>
+<td align="center"><img src="docs/images/anim/take_notes.webp" width="190" alt="Taking notes"><br><sub>Searching</sub></td>
+<td align="center"><img src="docs/images/anim/write_code.webp" width="190" alt="Writing code"><br><sub>Editing</sub></td>
+<td align="center"><img src="docs/images/anim/working.webp" width="190" alt="Busy tapping"><br><sub>Editing · running</sub></td>
+<td align="center"><img src="docs/images/anim/desk_tap.webp" width="190" alt="Tapping the desk"><br><sub>Running a command</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/working_command.webp" width="190" alt="Sorting papers"><br><sub>Subagents · compacting</sub></td>
+<td align="center"><img src="docs/images/anim/waiting.webp" width="190" alt="Pacing"><br><sub>Waiting for you</sub></td>
+<td align="center"><img src="docs/images/anim/success.webp" width="190" alt="Done"><br><sub>Done</sub></td>
+<td align="center"><img src="docs/images/anim/error.webp" width="190" alt="Stopped on an error"><br><sub>Error</sub></td>
 </tr>
 </table>
 
@@ -46,10 +53,27 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 
 <table>
 <tr>
-<td align="center"><img src="docs/images/anim/head_pat.webp" width="165" alt="A head pat"><br><sub>Pat her head (or double-click)</sub></td>
-<td align="center"><img src="docs/images/anim/poke.webp" width="165" alt="A poke"><br><sub>Poke her</sub></td>
-<td align="center"><img src="docs/images/anim/tail.webp" width="165" alt="Touching her tail"><br><sub>Touch her tail</sub></td>
-<td align="center"><img src="docs/images/anim/drag.webp" width="165" alt="Dragged and set down"><br><sub>Drag her, then let go</sub></td>
+<td align="center"><img src="docs/images/anim/head_pat.webp" width="190" alt="A head pat: giggling"><br><sub>Pat her head</sub></td>
+<td align="center"><img src="docs/images/anim/shy.webp" width="190" alt="A head pat: shy"><br><sub>Pat her head</sub></td>
+<td align="center"><img src="docs/images/anim/poke.webp" width="190" alt="A poke: waving"><br><sub>Poke her</sub></td>
+<td align="center"><img src="docs/images/anim/huff.webp" width="190" alt="A poke: huffy"><br><sub>Poke her</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/happy_hop.webp" width="190" alt="A poke: a happy hop"><br><sub>Poke her</sub></td>
+<td align="center"><img src="docs/images/anim/tail.webp" width="190" alt="Touching her tail: bubbles"><br><sub>Touch her tail</sub></td>
+<td align="center"><img src="docs/images/anim/tail_slap.webp" width="190" alt="Touching her tail: a tail slap"><br><sub>Touch her tail</sub></td>
+<td align="center"><img src="docs/images/anim/drag.webp" width="190" alt="Dragged and set down"><br><sub>Drag her, then let go</sub></td>
+</tr>
+</table>
+
+**When she talks (Persona on)**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/chatter_screen.webp" width="190" alt="Talking at the screen"><br><sub>Saying a line</sub></td>
+<td align="center"><img src="docs/images/anim/chatter_daydream.webp" width="190" alt="Talking, daydreaming"><br><sub>Saying a line</sub></td>
+<td align="center"><img src="docs/images/anim/chatter_wipe.webp" width="190" alt="Talking while tidying"><br><sub>Saying a line</sub></td>
+<td align="center"><img src="docs/images/anim/curtsy.webp" width="190" alt="A curtsy"><br><sub>Greeting you</sub></td>
 </tr>
 </table>
 
@@ -57,14 +81,48 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 
 <table>
 <tr>
-<td align="center"><img src="docs/images/anim/stretch.webp" width="165" alt="Stretching"><br><sub>A stretch</sub></td>
-<td align="center"><img src="docs/images/anim/yawn.webp" width="165" alt="Yawning"><br><sub>A yawn</sub></td>
-<td align="center"><img src="docs/images/anim/snack.webp" width="165" alt="Eating a token"><br><sub>Snacking on a token</sub></td>
+<td align="center"><img src="docs/images/anim/idle_stretch.webp" width="190" alt="Stretching"><br><sub>A stretch</sub></td>
+<td align="center"><img src="docs/images/anim/idle_yawn.webp" width="190" alt="Yawning"><br><sub>A yawn</sub></td>
+<td align="center"><img src="docs/images/anim/eat_token.webp" width="190" alt="Eating a token"><br><sub>Snacking on a token</sub></td>
+<td align="center"><img src="docs/images/anim/hum.webp" width="190" alt="Humming"><br><sub>Humming</sub></td>
+</tr>
+</table>
+
+**By the clock**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/brush_teeth.webp" width="190" alt="Brushing her teeth"><br><sub>Morning</sub></td>
+<td align="center"><img src="docs/images/anim/breakfast.webp" width="190" alt="Breakfast"><br><sub>Breakfast</sub></td>
+<td align="center"><img src="docs/images/anim/lunch.webp" width="190" alt="Lunch"><br><sub>Lunch</sub></td>
+<td align="center"><img src="docs/images/anim/dinner.webp" width="190" alt="Dinner"><br><sub>Dinner</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/nap.webp" width="190" alt="A nap"><br><sub>A nap after lunch · falling asleep</sub></td>
+<td align="center"><img src="docs/images/anim/doze.webp" width="190" alt="Dozing off, then startled awake"><br><sub>Dozing late at night</sub></td>
+<td align="center"><img src="docs/images/anim/startled.webp" width="190" alt="Startled awake"><br><sub>Clicked awake</sub></td>
 <td></td>
 </tr>
 </table>
 
-With her voice on, some of these also show her mood: happy (tail), proud (done), worried (poke), sleepy (yawn) and curious (stretch). Previews are shown at 40% size and 8 fps; on your desktop she moves at full size and 24 fps.
+**Your 5-hour usage**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/purse_full.webp" width="190" alt="A purse full to the brim"><br><sub>Under 20%</sub></td>
+<td align="center"><img src="docs/images/anim/purse_jingle.webp" width="190" alt="A jingling purse"><br><sub>20-40%</sub></td>
+<td align="center"><img src="docs/images/anim/purse_steady.webp" width="190" alt="A steady purse"><br><sub>40-60%</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/purse_frown.webp" width="190" alt="Counting coins with a frown"><br><sub>60-80%</sub></td>
+<td align="center"><img src="docs/images/anim/purse_empty.webp" width="190" alt="An empty purse"><br><sub>80-99%</sub></td>
+<td align="center"><img src="docs/images/anim/purse_broke.webp" width="190" alt="Not a coin left"><br><sub>Used up</sub></td>
+</tr>
+</table>
+
+**Each touch picks one of her reactions at random**, and while Claude Code works she switches between the clips for what it is doing. By the clock she brushes her teeth in the morning (6:30-8:00), has breakfast (7:30-9:30), lunch (11:30-13:30), a nap after lunch (13:30-15:00) and dinner (17:30-19:30), and dozes off late at night: each once a day, at her first idle moment in it. Click her while she naps and she wakes with a start. Each time your 5-hour usage climbs into a new step, she shows you her purse once.
+
+With her voice on she talks while she says a line, curtsies or waves when she greets you, and naps when she goes to sleep. Some clips also show her mood: happy (a happy hop), proud (done), worried (sighing), sleepy (a yawn) and curious (looking around). Previews are shown at 36% size and 8 fps; on your desktop she moves at full size and 24 fps.
 
 ## Get started (Windows 10 / 11)
 
@@ -182,6 +240,7 @@ The source is here under the MIT license. A developer guide is coming. Until the
 - She grows closer to you over the days, with your pats and chats, and it shows in how she talks to you.
 - Who she is becoming is kept in a few sections, holding on to what lasts about the two of you and letting one-off details go.
 - Fixed: something that happened just as she greeted you (a day-together milestone, say) was dropped; now she can mention both.
+- **Over 40 animations**, up from 16: several reactions for each touch, more clips for each kind of work, a talking clip while she speaks, a curtsy when she greets you, breakfast, lunch, dinner, a nap after lunch (click to wake her), and a purse for your 5-hour usage. Her window is a little wider to fit them, and she is drawn a touch smaller.
 
 **2026-10-29**
 - Fixed: when your computer was off as her day ended, she now sleeps as soon as she starts again, even if she greets you first.

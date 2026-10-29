@@ -40,8 +40,8 @@ class FakeWindow(QObject):
         self.displays.append(display)
         return self.repaint_result
 
-    def say(self, text, mood, ttl_s, reply=False):
-        self.said.append((text, mood, ttl_s) + (("reply",) if reply else ()))
+    def say(self, text, mood, ttl_s, reply=False, cue=None):
+        self.said.append((text, mood, ttl_s) + (("reply",) if reply else ()) + ((cue,) if cue else ()))
 
     def show(self):
         self.visible = True
@@ -382,3 +382,8 @@ def test_a_line_from_say_reaches_the_window(controller):
 def test_a_reply_from_say_reaches_the_window_as_a_reply(controller):
     controller.say_received.emit({"text": "hi", "mood": "happy", "ttl_s": 15.0, "reply": True})
     assert controller.window.said == [("hi", "happy", 15.0, "reply")]
+
+
+def test_a_cue_from_say_reaches_the_window(controller):
+    controller.say_received.emit({"text": None, "mood": "sleepy", "ttl_s": 6.0, "reply": False, "cue": "sleep"})
+    assert controller.window.said == [(None, "sleepy", 6.0, "sleep")]

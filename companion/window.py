@@ -270,20 +270,28 @@ class CompanionWindow(QWidget):
         cue = cue_for(previous, display) if self.settings.sounds else None
         if cue:
             self.sounds.play(cue)
-        self.animator.set_state(display.state, self.clock())
+        now = self.clock()
+        self.animator.set_state(display.state, now)
+        self.animator.set_usage(display.quota.five_hour_pct, now)
         self.refresh()
         return self._sync_bubble()
 
-    def say(self, text: str | None, mood: str, ttl_s: float, reply: bool = False) -> None:
-        """Her line and mood from /say: the mood clip plays if nothing else is, the line (if any) shows unless she is quiet.
+    def say(self, text: str | None, mood: str, ttl_s: float, reply: bool = False, cue: str | None = None) -> None:
+        """Her line, mood and cue from /say; the line (if any) shows unless she is quiet.
 
-        A reply answers the chat box, which stops waiting.
+        Her body: the cue's clip (her greeting, her sleep), else a talking clip while a line
+        shows, else the mood clip if nothing else is playing. A reply answers the chat box,
+        which stops waiting.
         """
         persona = self.settings.persona
         if persona == "off":
             return
-        clip = self.skin.mood_clip(mood)
-        if clip is not None and self.animator.play_mood(clip, self.clock()):
+        now = self.clock()
+        shown = persona == "on" and bool(text)
+        gestures = (self.skin.cue_clips(cue) if cue else ()) or (self.skin.talk_clips() if shown else ())
+        if gestures and self.animator.gesture(gestures, now):
+            self.refresh()
+        elif (clip := self.skin.mood_clip(mood)) is not None and self.animator.play_mood(clip, now):
             self.refresh()
         if persona == "on" and text:
             self.bubble.say(text, ttl_s)

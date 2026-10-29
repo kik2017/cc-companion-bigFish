@@ -413,16 +413,17 @@ class Clock:
 def mind(isolated_app_dir):
     files = Files()
     files.setup()
-    said = []
+    said, cues = [], []
     clock = Clock()
     client = FakeClient()
 
-    def say(text, mood, reply=False):
+    def say(text, mood, reply=False, cue=None):
         said.append((text, mood) + (("reply",) if reply else ()))
+        cues.append(cue)
         return 204
 
     built = Mind(files, files.load_config(), Voice(client, "claude-haiku-5-5"), say, now=clock)
-    built.said, built.clock, built.client = said, clock, client
+    built.said, built.cues, built.clock, built.client = said, cues, clock, client
     return built
 
 
@@ -586,7 +587,7 @@ def test_chattiness_comes_from_config_and_bad_values_fall_back(isolated_app_dir)
     assert files.load_config()["chattiness"] == "chatty"
     mind_files.write_json(files.config, {"chattiness": "LOUD"})
     assert files.load_config()["chattiness"] == "normal"
-    built = Mind(files, {**files.load_config(), "chattiness": "chatty"}, None, lambda text, mood: 204)
+    built = Mind(files, {**files.load_config(), "chattiness": "chatty"}, None, lambda text, mood, **kw: 204)
     assert built.senses.profile.musing is not None
 
 
@@ -1365,3 +1366,28 @@ def test_moments_and_chats_name_her_bond(mind):
 def test_a_prompt_without_a_bond_leaves_the_line_out():
     text = user_prompt("pat", {"zone": "head"}, now=DAY, display={}, today={}, mood="calm", energy=50, recent=[], project=Redactor(False))
     assert "How close" not in text
+
+
+# --- her body's cues --------------------------------------------------------------------------
+
+
+def test_her_greeting_carries_the_greet_cue_and_other_lines_none(mind):
+    run(mind.handle({"type": "event", "event": ev("SessionStart", source="startup")}))
+    mind.clock.at += timedelta(minutes=30)
+    run(mind.handle({"type": "pat", "zone": "head"}))
+    assert mind.cues == ["greet", None]
+
+
+def test_a_silent_or_mood_only_greeting_still_greets(mind):
+    mind.client.text = '{"say": "", "mood": "happy", "notice": ""}'
+    run(mind.handle({"type": "event", "event": ev("SessionStart", source="startup")}))
+    assert mind.said == [(None, "happy")] and mind.cues == ["greet"]
+    mind.handle({"type": "persona", "mode": "quiet"})
+    mind.clock.at += timedelta(hours=3)
+    run(mind.handle({"type": "event", "event": ev("UserPromptSubmit")}))
+    assert mind.cues[-1] == "greet"
+
+
+def test_a_chat_reply_carries_no_cue(mind):
+    run(mind.handle({"type": "chat", "text": "hi"}))
+    assert mind.cues == [None]

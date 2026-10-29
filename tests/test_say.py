@@ -54,7 +54,7 @@ def say(srv, body, headers=None, token=TOKEN):
 
 def test_a_valid_line_is_shown_and_queued_sanitized(server):
     assert say(server, {"text": "  早呀\n今天也一起加油  ", "mood": "happy", "ttl_s": 6}) == (204, b"")
-    assert server.lines.get(timeout=1) == {"text": "早呀 今天也一起加油", "mood": "happy", "ttl_s": 6.0, "reply": False}
+    assert server.lines.get(timeout=1) == {"text": "早呀 今天也一起加油", "mood": "happy", "ttl_s": 6.0, "reply": False, "cue": None}
     assert server.hooks.empty()  # a line never reaches the hook sink
 
 
@@ -101,7 +101,7 @@ def test_an_invalid_line_answers_400(server, body):
 
 def test_a_mood_with_no_words_is_accepted(server):
     assert say(server, {"mood": "happy"})[0] == 204
-    assert server.lines.get(timeout=1) == {"text": None, "mood": "happy", "ttl_s": SAY_DEFAULT_TTL_S, "reply": False}
+    assert server.lines.get(timeout=1) == {"text": None, "mood": "happy", "ttl_s": SAY_DEFAULT_TTL_S, "reply": False, "cue": None}
 
 
 def test_a_null_text_is_not_a_mood_only_line(server):
@@ -122,19 +122,19 @@ def test_a_granted_reply_passes_the_interval_once(server):
     server.grant_reply()
     server.now[0] += 1
     assert say(server, {"text": "not a reply"})[0] == 429, "the credit is only for a reply"
-    assert say(server, {"text": "her answer", "reply": True})[0] == 204
-    assert say(server, {"text": "another", "reply": True})[0] == 429, "one reply per grant"
-    assert [server.lines.get(timeout=1) for _ in range(2)][1] == {"text": "her answer", "mood": "calm", "ttl_s": SAY_DEFAULT_TTL_S, "reply": True}
+    assert say(server, {"text": "her answer", "reply": True, "cue": None})[0] == 204
+    assert say(server, {"text": "another", "reply": True, "cue": None})[0] == 429, "one reply per grant"
+    assert [server.lines.get(timeout=1) for _ in range(2)][1] == {"text": "her answer", "mood": "calm", "ttl_s": SAY_DEFAULT_TTL_S, "reply": True, "cue": None}
 
 
 def test_a_reply_without_a_grant_or_after_it_expires_waits_its_turn(server):
     assert say(server, {"text": "a line"})[0] == 204
-    assert say(server, {"text": "unasked", "reply": True})[0] == 429
+    assert say(server, {"text": "unasked", "reply": True, "cue": None})[0] == 429
     server.grant_reply()
     server.now[0] += REPLY_WINDOW_S + 1
     assert say(server, {"text": "a later line"})[0] == 204
     server.now[0] += 1
-    assert say(server, {"text": "too late", "reply": True})[0] == 429, "the grant has expired"
+    assert say(server, {"text": "too late", "reply": True, "cue": None})[0] == 429, "the grant has expired"
 
 
 def test_no_pause_lets_lines_through_back_to_back_until_restored(server):
@@ -169,7 +169,7 @@ def test_the_log_carries_length_and_mood_never_the_text(server, caplog):
 
 
 def test_defaults_for_mood_and_lifetime():
-    assert sanitize_say({"text": "hi"}) == {"text": "hi", "mood": MOODS[0], "ttl_s": SAY_DEFAULT_TTL_S, "reply": False}
+    assert sanitize_say({"text": "hi"}) == {"text": "hi", "mood": MOODS[0], "ttl_s": SAY_DEFAULT_TTL_S, "reply": False, "cue": None}
 
 
 @pytest.mark.parametrize("ttl, expected", [(0, SAY_TTL_S[0]), (-5, SAY_TTL_S[0]), (9.5, 9.5), (600, SAY_TTL_S[1])])
@@ -212,3 +212,14 @@ def test_the_token_file_is_replaced_whole(isolated_app_dir):
     assert prefs.say_token_path().read_text(encoding="utf-8") == "second"
     assert prefs.say_token_path().parent == isolated_app_dir
     assert not list(isolated_app_dir.glob("*.tmp"))
+
+
+@pytest.mark.parametrize("cue, kept", [("greet", "greet"), ("sleep", "sleep"), ("dance", None), (1, None), (None, None)])
+def test_a_cue_is_kept_only_if_known_and_never_refuses_the_line(cue, kept):
+    speech = sanitize_say({"text": "hi", "cue": cue})
+    assert speech is not None and speech["cue"] == kept and speech["text"] == "hi"
+
+
+def test_a_cue_rides_with_a_mood_alone(server):
+    assert say(server, {"mood": "sleepy", "cue": "sleep"})[0] == 204
+    assert server.lines.get(timeout=1)["cue"] == "sleep"

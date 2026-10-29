@@ -20,7 +20,8 @@
 
 - **显示 Claude Code 的状态：**思考、读取与查找、编辑文件、执行命令、委派子 Agent、等你确认、完成、出错和压缩上下文。
 - **状态气泡：**项目、模型、推理强度、子 Agent、任务进度、上下文占用，以及 5 小时和 7 天的用量。
-- **和你互动：**拖到任何地方、摸摸头、戳一戳、碰碰尾巴。
+- **和你互动：**拖到任何地方、摸摸头、戳一戳、碰碰尾巴，每种都有几种反应随机出现；她小睡时还能把她点醒。
+- **过好每一天：**40 多段动画，从哼歌、伸懒腰到早餐、午餐、晚餐和午睡，还有随着你 5 小时用量变空的钱袋。
 - **开口说话（可选）：**用你自己的 Anthropic API Key，她会在值得一提的时刻说上一句、在你找她聊天时回答（你允许的话还能上网查），每晚还会睡觉：写日记、整理对你的了解，偶尔做个梦。
 
 ## 她的动作
@@ -29,42 +30,99 @@
 
 <table>
 <tr>
-<td align="center"><img src="docs/images/anim/idle.webp" width="165" alt="待机：安静地站着"><br><sub>待机</sub></td>
-<td align="center"><img src="docs/images/anim/thinking.webp" width="165" alt="思考"><br><sub>思考 · 压缩上下文</sub></td>
-<td align="center"><img src="docs/images/anim/editing.webp" width="165" alt="编辑文件"><br><sub>编辑文件 · 委派子 Agent</sub></td>
-<td align="center"><img src="docs/images/anim/running.webp" width="165" alt="执行命令"><br><sub>执行命令</sub></td>
+<td align="center"><img src="docs/images/anim/idle.webp" width="190" alt="Idle: standing calmly"><br><sub>待机</sub></td>
+<td align="center"><img src="docs/images/anim/thinking.webp" width="190" alt="Thinking"><br><sub>思考</sub></td>
+<td align="center"><img src="docs/images/anim/deep_thought.webp" width="190" alt="Thinking hard"><br><sub>思考</sub></td>
+<td align="center"><img src="docs/images/anim/look_around.webp" width="190" alt="Looking around"><br><sub>查找</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/images/anim/waiting.webp" width="165" alt="查找，或等你确认"><br><sub>读取与查找 · 等你确认</sub></td>
-<td align="center"><img src="docs/images/anim/done.webp" width="165" alt="完成"><br><sub>完成</sub></td>
-<td align="center"><img src="docs/images/anim/error.webp" width="165" alt="出错停下"><br><sub>出错</sub></td>
+<td align="center"><img src="docs/images/anim/take_notes.webp" width="190" alt="Taking notes"><br><sub>查找</sub></td>
+<td align="center"><img src="docs/images/anim/write_code.webp" width="190" alt="Writing code"><br><sub>编辑</sub></td>
+<td align="center"><img src="docs/images/anim/working.webp" width="190" alt="Busy tapping"><br><sub>编辑 · 运行</sub></td>
+<td align="center"><img src="docs/images/anim/desk_tap.webp" width="190" alt="Tapping the desk"><br><sub>运行命令</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/working_command.webp" width="190" alt="Sorting papers"><br><sub>子代理 · 压缩</sub></td>
+<td align="center"><img src="docs/images/anim/waiting.webp" width="190" alt="Pacing"><br><sub>等你回应</sub></td>
+<td align="center"><img src="docs/images/anim/success.webp" width="190" alt="Done"><br><sub>完成</sub></td>
+<td align="center"><img src="docs/images/anim/error.webp" width="190" alt="Stopped on an error"><br><sub>出错</sub></td>
+</tr>
+</table>
+
+**和她玩的时候**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/head_pat.webp" width="190" alt="A head pat: giggling"><br><sub>摸摸头</sub></td>
+<td align="center"><img src="docs/images/anim/shy.webp" width="190" alt="A head pat: shy"><br><sub>摸摸头</sub></td>
+<td align="center"><img src="docs/images/anim/poke.webp" width="190" alt="A poke: waving"><br><sub>戳一戳</sub></td>
+<td align="center"><img src="docs/images/anim/huff.webp" width="190" alt="A poke: huffy"><br><sub>戳一戳</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/happy_hop.webp" width="190" alt="A poke: a happy hop"><br><sub>戳一戳</sub></td>
+<td align="center"><img src="docs/images/anim/tail.webp" width="190" alt="Touching her tail: bubbles"><br><sub>碰尾巴</sub></td>
+<td align="center"><img src="docs/images/anim/tail_slap.webp" width="190" alt="Touching her tail: a tail slap"><br><sub>碰尾巴</sub></td>
+<td align="center"><img src="docs/images/anim/drag.webp" width="190" alt="Dragged and set down"><br><sub>拖动后放下</sub></td>
+</tr>
+</table>
+
+**她说话时（Persona 打开）**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/chatter_screen.webp" width="190" alt="Talking at the screen"><br><sub>说话</sub></td>
+<td align="center"><img src="docs/images/anim/chatter_daydream.webp" width="190" alt="Talking, daydreaming"><br><sub>说话</sub></td>
+<td align="center"><img src="docs/images/anim/chatter_wipe.webp" width="190" alt="Talking while tidying"><br><sub>说话</sub></td>
+<td align="center"><img src="docs/images/anim/curtsy.webp" width="190" alt="A curtsy"><br><sub>向你问好</sub></td>
+</tr>
+</table>
+
+**闲着的时候**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/idle_stretch.webp" width="190" alt="Stretching"><br><sub>伸懒腰</sub></td>
+<td align="center"><img src="docs/images/anim/idle_yawn.webp" width="190" alt="Yawning"><br><sub>打哈欠</sub></td>
+<td align="center"><img src="docs/images/anim/eat_token.webp" width="190" alt="Eating a token"><br><sub>吃 Token</sub></td>
+<td align="center"><img src="docs/images/anim/hum.webp" width="190" alt="Humming"><br><sub>哼歌</sub></td>
+</tr>
+</table>
+
+**按时间**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/brush_teeth.webp" width="190" alt="Brushing her teeth"><br><sub>早上刷牙</sub></td>
+<td align="center"><img src="docs/images/anim/breakfast.webp" width="190" alt="Breakfast"><br><sub>早餐</sub></td>
+<td align="center"><img src="docs/images/anim/lunch.webp" width="190" alt="Lunch"><br><sub>午餐</sub></td>
+<td align="center"><img src="docs/images/anim/dinner.webp" width="190" alt="Dinner"><br><sub>晚餐</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/nap.webp" width="190" alt="A nap"><br><sub>午睡 · 入睡</sub></td>
+<td align="center"><img src="docs/images/anim/doze.webp" width="190" alt="Dozing off, then startled awake"><br><sub>深夜打瞌睡</sub></td>
+<td align="center"><img src="docs/images/anim/startled.webp" width="190" alt="Startled awake"><br><sub>被点醒</sub></td>
 <td></td>
 </tr>
 </table>
 
-**和她互动时**
+**你的 5 小时用量**
 
 <table>
 <tr>
-<td align="center"><img src="docs/images/anim/head_pat.webp" width="165" alt="摸头"><br><sub>摸摸头（或双击）</sub></td>
-<td align="center"><img src="docs/images/anim/poke.webp" width="165" alt="戳一戳"><br><sub>戳一戳</sub></td>
-<td align="center"><img src="docs/images/anim/tail.webp" width="165" alt="碰尾巴"><br><sub>碰碰尾巴</sub></td>
-<td align="center"><img src="docs/images/anim/drag.webp" width="165" alt="被拖起再放下"><br><sub>拖动她，再放手</sub></td>
+<td align="center"><img src="docs/images/anim/purse_full.webp" width="190" alt="A purse full to the brim"><br><sub>20% 以下</sub></td>
+<td align="center"><img src="docs/images/anim/purse_jingle.webp" width="190" alt="A jingling purse"><br><sub>20-40%</sub></td>
+<td align="center"><img src="docs/images/anim/purse_steady.webp" width="190" alt="A steady purse"><br><sub>40-60%</sub></td>
 </tr>
-</table>
-
-**没事发生时**
-
-<table>
 <tr>
-<td align="center"><img src="docs/images/anim/stretch.webp" width="165" alt="伸懒腰"><br><sub>伸个懒腰</sub></td>
-<td align="center"><img src="docs/images/anim/yawn.webp" width="165" alt="打哈欠"><br><sub>打个哈欠</sub></td>
-<td align="center"><img src="docs/images/anim/snack.webp" width="165" alt="吃 token"><br><sub>偷吃 token</sub></td>
-<td></td>
+<td align="center"><img src="docs/images/anim/purse_frown.webp" width="190" alt="Counting coins with a frown"><br><sub>60-80%</sub></td>
+<td align="center"><img src="docs/images/anim/purse_empty.webp" width="190" alt="An empty purse"><br><sub>80-99%</sub></td>
+<td align="center"><img src="docs/images/anim/purse_broke.webp" width="190" alt="Not a coin left"><br><sub>用完了</sub></td>
 </tr>
 </table>
 
-开启她的声音后，其中一些动作也代表她的心情：开心（尾巴）、得意（完成）、担心（戳一戳）、困了（打哈欠）、好奇（伸懒腰）。预览为 40% 大小、每秒 8 帧；在桌面上她是原尺寸、每秒 24 帧。
+**每次碰她，都会随机选一种反应**；Claude Code 工作时，她也会在同一种状态的几段动画之间切换。按时间，她早上刷牙（6:30-8:00）、吃早餐（7:30-9:30）、午餐（11:30-13:30）、午睡（13:30-15:00）、晚餐（17:30-19:30），深夜会打瞌睡：每样一天一次，在那段时间里她第一次闲下来时。她小睡时点她，她会被吓醒。你的 5 小时用量每升一档，她会把钱袋给你看一次。
+
+开启她的声音后，她说话时会有说话的动作，向你问好时会行屈膝礼或挥手，睡觉时会打盹。其中一些动作也代表她的心情：开心（开心跃动）、得意（完成）、担心（叹气）、困了（打哈欠）、好奇（东张西望）。预览为 36% 大小、每秒 8 帧；在桌面上她是原尺寸、每秒 24 帧。
 
 ## 开始使用（Windows 10 / 11）
 
@@ -182,6 +240,7 @@
 - 随着你一天天的摸摸和聊天，她会和你越来越亲近，说话的样子也会跟着变。
 - “自己正在成为的样子”分成几个小节保存，留下你们之间长久的东西，一次性的细节就放下。
 - 修复：如果她打招呼的同时发生了别的事（比如在一起的天数达到纪念日），那件事会被丢掉；现在她可以两件一起说。
+- **40 多段动画**（之前 16 段）：每种触碰有几种反应，每类工作有更多动作，说话时有说话的动作，问好时行屈膝礼，还有早餐、午餐、晚餐、午睡（点她会被吓醒），以及代表 5 小时用量的钱袋。为了放下这些动作，她的窗口稍微变宽了，她本身也略小一点。
 
 **2026-10-29**
 - 修复：如果她的一天结束时电脑是关着的，现在她一启动就会去睡觉，即使先跟你打了招呼。

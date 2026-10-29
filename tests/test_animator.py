@@ -1,11 +1,12 @@
 import random
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 
 from companion.animator import CLICK_COOLDOWN_S, REST_WINDOWS_S, Animator
 from companion.model import State
-from companion.skin import Clip, Skin, Zone
+from companion.skin import Clip, Skin, Timed, Zone
 
 STEP = 0.1  # every test clip runs 100 ms per frame
 
@@ -397,3 +398,145 @@ def test_a_mood_never_cuts_a_reaction_or_an_idle_clip():
 def test_reduced_motion_plays_no_mood():
     anim = make(reduced_motion=True)
     assert not anim.play_mood(mood(anim), 0.0)
+
+
+# --- variants, wake, gestures, times of day and usage ------------------------------------------
+
+
+def rich_skin():
+    """make_skin's clips plus variants, a nap that a click wakes, talk, cues, timed clips and usage tiers."""
+    base = make_skin()
+    extra = [
+        clip("write"), clip("nap", loop=False), clip("startle", loop=False), clip("talk", loop=False),
+        clip("bow", loop=False), clip("meal", loop=False), clip("doze", loop=False),
+        clip("rich", loop=False), clip("mid", loop=False), clip("broke", loop=False),
+    ]  # fmt: skip
+    states = {**base.states, State.EDITING: ("work", "write")}
+    reactions = {**base.reactions, "body": ("poke", "tail")}
+    return Skin(
+        "rich", Path("."), (100, 100), {**base.clips, **{c.name: c for c in extra}}, states, reactions,
+        ("blink",), base.zones, talk=("talk",), cues={"greet": ("bow",), "sleep": ("nap",)},
+        wake_during=frozenset({"nap"}), wake="startle",
+        timed=(Timed("meal", 7 * 60, 9 * 60 + 30), Timed("doze", 23 * 60 + 30, 2 * 60)),
+        usage=("rich", "mid", "broke"),
+    )  # fmt: skip
+
+
+def rich(now=0.0, at=datetime(2026, 10, 30, 12, 0), **kwargs):
+    clock = {"at": at}
+    anim = Animator(rich_skin(), now, rng=random.Random(7), local_now=lambda: clock["at"], **kwargs)
+    anim.wall = clock
+    return anim
+
+
+def idle_now(anim, now):
+    """Make her rest window end at `now` and return the idle clip she then plays."""
+    anim.idle_due = now
+    return anim.frame(now).clip
+
+
+def test_a_state_with_variants_picks_one_and_may_change_at_the_end_of_a_pass(monkeypatch):
+    import companion.animator as animator_mod
+
+    anim = rich()
+    anim.set_state(State.EDITING, 0.0)
+    first = anim.frame(0.0).clip
+    assert first in ("work", "write")
+    monkeypatch.setattr(animator_mod, "VARIANT_SWITCH", 1.0)
+    assert anim.frame(0.35).clip == first, "mid-pass nothing changes"
+    after = anim.frame(0.45)
+    assert after.clip != first and after.clip in ("work", "write") and after.index == 0
+    monkeypatch.setattr(animator_mod, "VARIANT_SWITCH", 0.0)
+    assert anim.frame(0.85).clip == after.clip and anim.frame(0.85).index == 0
+
+
+def test_a_reaction_with_several_clips_picks_among_them():
+    seen = set()
+    for seed in range(12):
+        anim = Animator(rich_skin(), 0.0, rng=random.Random(seed))
+        anim.click("body", 0.0)
+        seen.add(anim.frame(0.0).clip)
+    assert seen == {"poke", "tail"}
+
+
+def test_a_click_during_her_nap_wakes_her():
+    anim = rich()
+    anim.idle_clip = "nap"
+    anim._play(anim.skin.clips["nap"], 0.0)
+    assert anim.click("head", 0.1)
+    assert anim.reaction == "wake" and anim.frame(0.1).clip == "startle"
+    anim.set_state(State.THINKING, 0.2)
+    assert anim.frame(0.2).clip == "think", "a state change cuts the waking short"
+
+
+def test_a_gesture_plays_on_the_reaction_tier_then_hands_back():
+    anim = rich()
+    assert anim.gesture(anim.skin.talk_clips(), 0.0)
+    assert anim.reaction == "gesture" and anim.frame(0.1).clip == "talk"
+    assert not anim.gesture(anim.skin.cue_clips("greet"), 0.1), "one at a time"
+    assert not anim.click("head", 0.1)
+    assert anim.frame(0.5).clip == "idle", "back to the state clip when it ends"
+
+
+def test_a_gesture_waits_for_nothing_but_respects_done_and_reduced_motion():
+    anim = rich()
+    anim.set_state(State.DONE, 0.0)
+    assert not anim.gesture(anim.skin.talk_clips(), 0.1), "the done clip is still playing"
+    assert anim.gesture(anim.skin.talk_clips(), 0.5)
+    anim.set_state(State.EDITING, 0.6)
+    assert anim.reaction is None, "a state change cuts it short"
+    still = rich(reduced_motion=True)
+    assert not still.gesture(still.skin.talk_clips(), 0.0)
+    assert not rich().gesture((), 0.0)
+
+
+def test_a_time_of_day_clip_plays_once_in_its_window_each_day():
+    anim = rich(at=datetime(2026, 10, 30, 7, 45))
+    assert idle_now(anim, 0.0) == "meal"
+    anim.frame(1.0)  # it ends
+    assert idle_now(anim, 1.0) == "blink", "once is enough for today"
+    anim.frame(2.0)
+    anim.wall["at"] = datetime(2026, 10, 31, 8, 0)
+    assert idle_now(anim, 2.0) == "meal", "and again tomorrow"
+    anim.frame(3.0)
+    anim.wall["at"] = datetime(2026, 10, 31, 10, 0)
+    assert idle_now(anim, 3.0) == "blink", "outside the window, the usual idle clips"
+
+
+def test_a_window_past_midnight_belongs_to_the_evening_it_started():
+    anim = rich(at=datetime(2026, 10, 30, 23, 45))
+    assert idle_now(anim, 0.0) == "doze"
+    anim.frame(1.0)
+    anim.wall["at"] = datetime(2026, 10, 31, 0, 30)
+    assert idle_now(anim, 1.0) == "blink", "still the same night's window"
+    anim.frame(2.0)
+    anim.wall["at"] = datetime(2026, 10, 31, 23, 40)
+    assert idle_now(anim, 2.0) == "doze"
+
+
+def test_climbing_into_a_usage_tier_plays_its_clip_once():
+    anim = rich()
+    anim.set_usage(10, 0.0)
+    assert anim.usage_due is None, "the first report only sets where she starts"
+    anim.set_usage(40, 0.1)
+    assert anim.usage_due is None, "still the first tier"
+    anim.set_usage(60, 0.2)
+    assert anim.frame(0.2).clip == "mid", "idle with nothing playing: at once"
+    anim.frame(1.0)
+    anim.set_usage(100, 1.0)
+    assert anim.frame(1.0).clip == "broke"
+    anim.frame(2.0)
+    anim.set_usage(5, 2.0)
+    assert anim.usage_due is None and anim.usage_tier == 0, "a new window starts over"
+
+
+def test_a_usage_clip_waits_while_she_works():
+    anim = rich()
+    anim.set_usage(0, 0.0)
+    anim.set_state(State.THINKING, 0.1)
+    anim.set_usage(70, 0.2)
+    assert anim.frame(0.3).clip == "think" and anim.usage_due == "mid"
+    anim.set_state(State.IDLE, 1.0)
+    assert idle_now(anim, 1.5) == "mid", "her next idle moment is the purse's"
+    anim.set_usage(None, 2.0)
+    assert anim.usage_tier == 1, "no report changes nothing"

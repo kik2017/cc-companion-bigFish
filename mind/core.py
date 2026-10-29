@@ -68,7 +68,7 @@ from .voice import Voice
 log = logging.getLogger("mind")
 
 Job = Callable[..., None]
-SayFn = Callable[..., int]  # (text or None for mood-only, mood, reply=False) -> HTTP status
+SayFn = Callable[..., int]  # (text or None for mood-only, mood, reply=False, cue=None) -> HTTP status
 IdleFn = Callable[[], float | None]  # seconds since the last keyboard or mouse input; None: unknown
 CHAT_MAX_CHARS = 300
 CHAT_CONTEXT = 10  # the last this many chat lines of today go with each new message
@@ -76,7 +76,7 @@ RECENT_KEPT = 20
 PAT_WAIT = timedelta(seconds=60)
 PAT_POLL_S = 1.0
 SEEN_SAVE = timedelta(minutes=1)  # input at the desk moves last_seen every tick; it is saved at most this often
-GREETINGS = ("greeting", "back")  # moments that come with these are told in their line
+GREETINGS = ("greeting", "back")  # moments that come with these are told in their line; her body greets too
 
 
 def clean_chat(raw: object) -> str | None:
@@ -215,7 +215,7 @@ class Mind:
 
     def _sleep(self, days: list) -> None:
         try:
-            self._post(None, "sleepy")
+            self._post(None, "sleepy", cue="sleep")
             for day in days:
                 self.sleeper.run(day)
         finally:
@@ -296,7 +296,7 @@ class Mind:
 
     def _mood_only(self, moment: Moment, mood: str) -> Job:
         def run() -> None:
-            status = self._post(None, mood)
+            status = self._post(None, mood, cue=_cue(moment))
             log.info("moment %s: mood %s (%s)", moment.kind, mood, status)
 
         return run
@@ -345,9 +345,10 @@ class Mind:
         idle = self._idle()
         return idle is not None and idle >= AWAY_AFTER
 
-    def _post(self, text: str | None, mood: str, reply: bool = False) -> int:
-        """Send a line or a mood to the daemon; the time it was taken, for the interval a held pat waits out."""
-        status = self.say(text, mood, reply=reply) if reply else self.say(text, mood)
+    def _post(self, text: str | None, mood: str, reply: bool = False, cue: str | None = None) -> int:
+        """Send a line or a mood (and a cue for her body) to the daemon; the time it was taken, for a held pat."""
+        extra = {**({"reply": True} if reply else {}), **({"cue": cue} if cue else {})}
+        status = self.say(text, mood, **extra)
         if status == 204:
             with self.lock:
                 self.last_say = self.now()
@@ -363,9 +364,9 @@ class Mind:
                 return
             if not reply.say:
                 log.info("moment %s: she chose silence", moment.kind)
-                self._post(None, reply.mood)
+                self._post(None, reply.mood, cue=_cue(moment))
                 return
-            status = self._post(reply.say, reply.mood)
+            status = self._post(reply.say, reply.mood, cue=_cue(moment))
             log.info("moment %s: said %d chars, mood %s (%s)", moment.kind, len(reply.say), reply.mood, status)
             if status == 204:
                 with self.lock:
@@ -474,6 +475,11 @@ class Mind:
     def _save(self) -> None:
         write_json(self.files.state, {"senses": self.senses.to_state(), "mood": self.mood.to_state()})
         self.saved_seen = self.senses.last_seen
+
+
+def _cue(moment: Moment) -> str | None:
+    """The cue her body plays with a moment's line: a greeting greets."""
+    return "greet" if moment.kind in GREETINGS else None
 
 
 def _redacted(detail: dict, redact: Redactor) -> dict:

@@ -148,8 +148,10 @@ class Controller(QObject):
 
     @Slot(object)
     def on_say(self, speech: dict) -> None:
-        """A line that passed /say: {"text", "mood", "ttl_s", "reply"}."""
-        self.window.say(speech["text"], speech["mood"], speech["ttl_s"], reply=speech.get("reply", False))
+        """A line that passed /say: {"text", "mood", "ttl_s", "reply", "cue"}."""
+        self.window.say(
+            speech["text"], speech["mood"], speech["ttl_s"], reply=speech.get("reply", False), cue=speech.get("cue"),
+        )
 
     @Slot()
     def request_quit(self) -> None:

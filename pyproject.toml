@@ -22,6 +22,8 @@ mind = ["anthropic>=1,<2"]
 build = ["pyinstaller>=6,<7"]
 # The README's animated previews (python tools/make_previews.py).
 docs = ["pillow>=10"]
+# Rebuilding the bundled character's frames from dsh-pet's videos (python tools/import_clips.py).
+clips = ["av>=13", "pillow>=10"]
 
 [tool.setuptools]
 packages = ["companion", "mind"]

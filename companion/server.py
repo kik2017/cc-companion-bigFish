@@ -7,7 +7,7 @@ A POST that is not application/json, or that carries an Origin or a cross-site
 Sec-Fetch-Site header, is dropped the same way, so a web page cannot feed the bubble.
 
 POST /say is the persona's voice: {"text", "mood", "ttl_s"}, or {"mood"} alone for a mood
-with no words, from a local process that
+with no words, plus an optional "cue" (greet, sleep) for her body, from a local process that
 holds the per-run say token (the daemon writes it to the app data folder). It answers
 with an empty body and a status: 204 shown, 400 not a valid line, 403 no or wrong token
 or browser-like, 409 the persona is off, 429 too soon after the last line. The line is
@@ -81,6 +81,7 @@ STATUS_NUMBER_FIELDS = (
 )
 
 SAY_MAX_CHARS = 120
+SAY_CUES = ("greet", "sleep")  # skin.CUES
 SAY_TTL_S = (4.0, 15.0)
 SAY_DEFAULT_TTL_S = 8.0
 # A backstop for a runaway caller; the persona's own speech budget is far stricter.
@@ -189,13 +190,14 @@ def sanitize_status(payload: object) -> dict | None:
 
 
 def sanitize_say(payload: object) -> dict | None:
-    """A /say body as {"text", "mood", "ttl_s", "reply"}: one line of printable text, a known mood, a clamped lifetime.
+    """A /say body as {"text", "mood", "ttl_s", "reply", "cue"}: one line of printable text, a known mood, a clamped lifetime.
 
     Whitespace runs, line breaks included, become one space and unprintable characters
     are dropped. None if the text is then empty or longer than SAY_MAX_CHARS, the mood is
     unknown, or ttl_s is given but is not a finite number. A body with a mood and no
     "text" key is a mood with no words: text None. "reply" is True only if the body says
-    exactly true.
+    exactly true. "cue" is one of SAY_CUES (greet, sleep), which plays the skin's clip for
+    it; anything else there is dropped and the line still shows.
     """
     if not isinstance(payload, dict):
         return None
@@ -216,7 +218,8 @@ def sanitize_say(payload: object) -> dict | None:
     if ttl is None:
         return None
     ttl_s = float(min(max(ttl, SAY_TTL_S[0]), SAY_TTL_S[1]))
-    return {"text": text, "mood": mood, "ttl_s": ttl_s, "reply": payload.get("reply") is True}
+    cue = payload.get("cue") if payload.get("cue") in SAY_CUES else None
+    return {"text": text, "mood": mood, "ttl_s": ttl_s, "reply": payload.get("reply") is True, "cue": cue}
 
 
 def _same(given: str, expected: str) -> bool:

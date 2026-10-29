@@ -2,23 +2,63 @@
   "format": 1,
   "name": "whale-tail maid (dsh-pet)",
   "frameSize": [
-    412,
-    344
+    528,
+    360
   ],
   "license": "LICENSE.txt",
   "clips": {
-    "dragging": {
-      "dir": "dragging",
+    "idle": {
+      "dir": "idle",
       "frameMs": 42,
       "loop": true
     },
-    "dragging_release": {
-      "dir": "dragging_release",
+    "thinking": {
+      "dir": "thinking",
       "frameMs": 42,
-      "loop": false
+      "loop": true
     },
-    "eat_token": {
-      "dir": "eat_token",
+    "deep_thought": {
+      "dir": "deep_thought",
+      "frameMs": 42,
+      "loop": true
+    },
+    "look_around": {
+      "dir": "look_around",
+      "frameMs": 42,
+      "loop": true
+    },
+    "take_notes": {
+      "dir": "take_notes",
+      "frameMs": 42,
+      "loop": true
+    },
+    "working": {
+      "dir": "working",
+      "frameMs": 42,
+      "loop": true
+    },
+    "write_code": {
+      "dir": "write_code",
+      "frameMs": 42,
+      "loop": true
+    },
+    "desk_tap": {
+      "dir": "desk_tap",
+      "frameMs": 42,
+      "loop": true
+    },
+    "working_command": {
+      "dir": "working_command",
+      "frameMs": 42,
+      "loop": true
+    },
+    "waiting": {
+      "dir": "waiting",
+      "frameMs": 42,
+      "loop": true
+    },
+    "success": {
+      "dir": "success",
       "frameMs": 42,
       "loop": false
     },
@@ -32,10 +72,50 @@
       "frameMs": 42,
       "loop": false
     },
-    "idle": {
-      "dir": "idle",
+    "shy": {
+      "dir": "shy",
+      "frameMs": 42,
+      "loop": false
+    },
+    "poke": {
+      "dir": "poke",
+      "frameMs": 42,
+      "loop": false
+    },
+    "huff": {
+      "dir": "huff",
+      "frameMs": 42,
+      "loop": false
+    },
+    "happy_hop": {
+      "dir": "happy_hop",
+      "frameMs": 42,
+      "loop": false
+    },
+    "tail": {
+      "dir": "tail",
+      "frameMs": 42,
+      "loop": false
+    },
+    "tail_slap": {
+      "dir": "tail_slap",
+      "frameMs": 42,
+      "loop": false
+    },
+    "dragging": {
+      "dir": "dragging",
       "frameMs": 42,
       "loop": true
+    },
+    "dragging_release": {
+      "dir": "dragging_release",
+      "frameMs": 42,
+      "loop": false
+    },
+    "startled": {
+      "dir": "startled",
+      "frameMs": 42,
+      "loop": false
     },
     "idle_stretch": {
       "dir": "idle_stretch",
@@ -47,88 +127,237 @@
       "frameMs": 42,
       "loop": false
     },
-    "poke": {
-      "dir": "poke",
+    "eat_token": {
+      "dir": "eat_token",
       "frameMs": 42,
       "loop": false
     },
-    "success": {
-      "dir": "success",
+    "hum": {
+      "dir": "hum",
       "frameMs": 42,
       "loop": false
     },
-    "tail": {
-      "dir": "tail",
+    "chatter_daydream": {
+      "dir": "chatter_daydream",
       "frameMs": 42,
       "loop": false
     },
-    "thinking": {
-      "dir": "thinking",
+    "chatter_screen": {
+      "dir": "chatter_screen",
       "frameMs": 42,
-      "loop": true
+      "loop": false
     },
-    "waiting": {
-      "dir": "waiting",
+    "chatter_wipe": {
+      "dir": "chatter_wipe",
       "frameMs": 42,
-      "loop": true
+      "loop": false
     },
-    "working": {
-      "dir": "working",
+    "curtsy": {
+      "dir": "curtsy",
       "frameMs": 42,
-      "loop": true
+      "loop": false
     },
-    "working_command": {
-      "dir": "working_command",
+    "nap": {
+      "dir": "nap",
       "frameMs": 42,
-      "loop": true
+      "loop": false
     },
-    "working_search": {
-      "dir": "working_search",
+    "doze": {
+      "dir": "doze",
       "frameMs": 42,
-      "loop": true
+      "loop": false
+    },
+    "brush_teeth": {
+      "dir": "brush_teeth",
+      "frameMs": 42,
+      "loop": false
+    },
+    "breakfast": {
+      "dir": "breakfast",
+      "frameMs": 42,
+      "loop": false
+    },
+    "lunch": {
+      "dir": "lunch",
+      "frameMs": 42,
+      "loop": false
+    },
+    "dinner": {
+      "dir": "dinner",
+      "frameMs": 42,
+      "loop": false
+    },
+    "purse_full": {
+      "dir": "purse_full",
+      "frameMs": 42,
+      "loop": false
+    },
+    "purse_jingle": {
+      "dir": "purse_jingle",
+      "frameMs": 42,
+      "loop": false
+    },
+    "purse_steady": {
+      "dir": "purse_steady",
+      "frameMs": 42,
+      "loop": false
+    },
+    "purse_frown": {
+      "dir": "purse_frown",
+      "frameMs": 42,
+      "loop": false
+    },
+    "purse_empty": {
+      "dir": "purse_empty",
+      "frameMs": 42,
+      "loop": false
+    },
+    "purse_broke": {
+      "dir": "purse_broke",
+      "frameMs": 42,
+      "loop": false
+    },
+    "look_around_once": {
+      "dir": "look_around",
+      "frameMs": 42,
+      "loop": false
+    },
+    "take_notes_once": {
+      "dir": "take_notes",
+      "frameMs": 42,
+      "loop": false
     }
   },
   "states": {
     "idle": "idle",
-    "thinking": "thinking",
-    "searching": "working_search",
-    "editing": "working",
-    "running": "working_command",
-    "delegating": "working",
+    "thinking": [
+      "thinking",
+      "deep_thought"
+    ],
+    "searching": [
+      "look_around",
+      "take_notes"
+    ],
+    "editing": [
+      "write_code",
+      "working"
+    ],
+    "running": [
+      "desk_tap",
+      "working"
+    ],
+    "delegating": "working_command",
     "waiting": "waiting",
     "done": "success",
     "error": "error",
-    "compacting": "thinking"
+    "compacting": "working_command"
   },
   "reactions": {
-    "head": "head_pat",
-    "body": "poke",
-    "tail": "tail",
+    "head": [
+      "head_pat",
+      "shy"
+    ],
+    "body": [
+      "poke",
+      "huff",
+      "happy_hop"
+    ],
+    "tail": [
+      "tail",
+      "tail_slap"
+    ],
     "drag": "dragging",
     "land": "dragging_release"
   },
   "idle": [
     "idle_stretch",
     "idle_yawn",
-    "eat_token"
+    "eat_token",
+    "hum",
+    "look_around_once",
+    "take_notes_once"
   ],
   "moods": {
-    "happy": "tail",
+    "happy": "happy_hop",
     "proud": "success",
-    "worried": "poke",
+    "worried": "error",
     "sleepy": "idle_yawn",
-    "curious": "idle_stretch"
+    "curious": "look_around_once"
   },
+  "talk": [
+    "chatter_daydream",
+    "chatter_screen",
+    "chatter_wipe"
+  ],
+  "cues": {
+    "greet": [
+      "curtsy",
+      "poke"
+    ],
+    "sleep": "nap"
+  },
+  "wake": {
+    "during": [
+      "nap",
+      "doze"
+    ],
+    "clip": "startled"
+  },
+  "timed": [
+    {
+      "clip": "brush_teeth",
+      "from": "06:30",
+      "to": "08:00"
+    },
+    {
+      "clip": "breakfast",
+      "from": "07:30",
+      "to": "09:30"
+    },
+    {
+      "clip": "lunch",
+      "from": "11:30",
+      "to": "13:30"
+    },
+    {
+      "clip": "nap",
+      "from": "13:30",
+      "to": "15:00"
+    },
+    {
+      "clip": "dinner",
+      "from": "17:30",
+      "to": "19:30"
+    },
+    {
+      "clip": "doze",
+      "from": "23:30",
+      "to": "02:00"
+    },
+    {
+      "clip": "nap",
+      "from": "02:00",
+      "to": "05:00"
+    }
+  ],
+  "usage": [
+    "purse_full",
+    "purse_jingle",
+    "purse_steady",
+    "purse_frown",
+    "purse_empty",
+    "purse_broke"
+  ],
   "zones": {
     "head": [
+      0.25,
       0,
-      0,
-      1,
-      0.45
+      0.75,
+      0.43
     ],
     "tail": [
-      0.72,
-      0.45,
+      0.645,
+      0.43,
       1,
       1
     ]

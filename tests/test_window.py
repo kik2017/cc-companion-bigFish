@@ -458,14 +458,14 @@ def test_say_shows_her_line_and_plays_the_mood(app, window):
     w = idle_window(app, window, "on")
     w.say("hi", "happy", 8)
     assert w.bubble.speech == "hi" and w.bubble.text.speech == "hi"
-    assert w.animator.idle_clip == w.skin.reactions["tail"]
+    assert w.animator.idle_clip == w.skin.reaction_clip("tail").name
 
 
 def test_quiet_plays_the_mood_without_words(app, window):
     w = idle_window(app, window, "quiet")
     w.say("hi", "proud", 8)
     assert w.bubble.speech is None
-    assert w.animator.idle_clip == w.skin.reactions["head"]
+    assert w.animator.idle_clip == w.skin.reaction_clip("head").name
 
 
 def test_a_mood_with_no_clip_still_shows_the_line(app, window):
@@ -498,7 +498,7 @@ def test_a_mood_with_no_words_plays_only_the_clip(app, window):
     w = idle_window(app, window, "on")
     w.say(None, "happy", 8)
     assert w.bubble.speech is None
-    assert w.animator.idle_clip == w.skin.reactions["tail"]
+    assert w.animator.idle_clip == w.skin.reaction_clip("tail").name
 
 
 def test_a_click_reaction_reports_the_pat(app, window):
@@ -559,3 +559,63 @@ def test_reveal_starts_explorer_with_her_identity_selected(monkeypatch, tmp_path
     assert windows.reveal(tmp_path) is True
     native = str(tmp_path)
     assert FakeProcess.started == [("explorer.exe", f'"{native}"'), ("explorer.exe", '/select,"' + str(tmp_path / "identity.md") + '"')]
+
+
+# --- her body: talking, cues and usage -------------------------------------------------------
+
+
+def lively_skin(tmp_path):
+    """The placeholder pack with a talking clip, a greeting and a sleep cue, and three usage tiers."""
+    root = tmp_path / "lively"
+    shutil.copytree(PLACEHOLDER, root)
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    manifest.update(
+        talk=["idle_blink"], cues={"greet": "idle_hop", "sleep": "pat"}, usage=["poke", "tail", "land"],
+    )  # fmt: skip
+    (root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return skins.load_skin(root)
+
+
+def lively_window(app, window, tmp_path, persona="on"):
+    w = window(prefs.Settings(persona=persona), skin=lively_skin(tmp_path))
+    show(app, w)
+    w.set_display(DisplayState(sessions=1, session_id="s1"))
+    return w
+
+
+def test_a_line_plays_her_talking_clip(app, window, tmp_path):
+    w = lively_window(app, window, tmp_path)
+    w.say("hi", "happy", 8)
+    assert w.bubble.speech == "hi"
+    assert w.animator.reaction == "gesture" and w.animator.clip.name == "idle_blink"
+
+
+def test_a_cue_plays_its_clip_with_or_without_words(app, window, tmp_path):
+    w = lively_window(app, window, tmp_path)
+    w.say("good morning", "happy", 8, cue="greet")
+    assert w.animator.clip.name == "idle_hop", "the greeting, not the talking"
+    quiet = lively_window(app, window, tmp_path / "quiet", persona="quiet")
+    quiet.say(None, "sleepy", 8, cue="sleep")
+    assert quiet.animator.clip.name == "pat" and quiet.bubble.speech is None
+
+
+def test_in_quiet_a_line_plays_the_mood_not_the_talking(app, window, tmp_path):
+    w = lively_window(app, window, tmp_path, persona="quiet")
+    w.say("hi", "happy", 8)
+    assert w.animator.reaction is None and w.animator.idle_clip == w.skin.reaction_clip("tail").name
+
+
+def test_an_unknown_cue_falls_back_to_talking(app, window, tmp_path):
+    w = lively_window(app, window, tmp_path)
+    w.say("hi", "calm", 8, cue="dance")
+    assert w.animator.clip.name == "idle_blink"
+
+
+def test_the_display_feeds_her_usage(app, window, tmp_path):
+    from companion.model import Quota
+
+    w = lively_window(app, window, tmp_path)
+    w.set_display(DisplayState(sessions=1, session_id="s1", quota=Quota(five_hour_pct=10.0)))
+    assert w.animator.usage_tier == 0
+    w.set_display(DisplayState(sessions=1, session_id="s1", quota=Quota(five_hour_pct=60.0)))
+    assert w.animator.usage_tier == 1 and w.animator.idle_clip == "tail"
