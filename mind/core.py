@@ -185,9 +185,9 @@ class Mind:
     # --- sleeping ------------------------------------------------------------------------
 
     def _sleep_job(self, now: datetime) -> Job | None:
-        started, self.just_started = self.just_started, False
         if self.sleeper is None or self.busy:
-            return None
+            return None  # a start's catch-up waits for the line in flight (the greeting a hook's launch brings)
+        started, self.just_started = self.just_started, False
         last = max((t for t in (self.senses.last_activity, self.senses.last_seen) if t is not None), default=None)
         if not started and last is not None and now - last < IDLE_BEFORE_SLEEP:
             return None

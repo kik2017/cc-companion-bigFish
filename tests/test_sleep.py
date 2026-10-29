@@ -426,6 +426,22 @@ def test_the_mind_waits_for_you_to_be_away_before_sleeping(files):
     assert len(mind.tick()) == 1
 
 
+def test_a_greeting_at_start_does_not_cancel_the_catch_up_sleep(files):
+    a_day(files)
+    clock = Clock(at("13:10", next_day=True))
+    voice = FakeVoice()
+    voice.speak = lambda system, user: (None, {})
+    mind = Mind(files, files.load_config(), voice, lambda text, mood: 204, now=clock)
+    start = {"hook_event_name": "SessionStart", "session_id": "s", "source": "startup"}
+    greeting = mind.handle({"type": "event", "event": start})  # the hook that launched her
+    assert len(greeting) == 1 and mind.tick() == [], "the greeting is on its way"
+    greeting[0]()
+    clock.when += timedelta(seconds=30)
+    (sleep,) = mind.tick()
+    sleep()
+    assert read_json(files.sleep)["days"]["2026-10-27"]["done"] is True
+
+
 def test_known_facts_reach_her_lines(files):
     facts_mod_doc = {"next_id": 2, "facts": [{"id": "f1", "text": "often works past midnight", "days": ["2026-10-26", "2026-10-27"], "seen": 2}]}
     files.facts.write_text(json.dumps(facts_mod_doc), encoding="utf-8")
