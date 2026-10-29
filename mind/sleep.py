@@ -7,7 +7,7 @@
 Four passes per day, one model call each, in order:
   diary         a first-person entry from the day's timeline (code builds the timeline)
   consolidate   her notices become facts: add, reinforce, merge, archive (facts.py)
-  self          the next self.md; the old one goes to self_history/
+  self          the next self.md, in four sections, coloured by her bond; the old one goes to self_history/
   dream         a short dream from fragments of her days, saved in the diary
 
 Rules every pass keeps: it never invents (prompts quote real records; a diary that names
@@ -33,6 +33,7 @@ from datetime import date, datetime, timedelta
 
 from . import facts as facts_mod
 from .files import Files, read_json, write_json
+from .mood import bond_stage
 from .senses import day_of, tool_label
 
 log = logging.getLogger("mind")
@@ -291,10 +292,15 @@ class Sleep:
         doc = facts_mod.clean(read_json(self.files.facts))
         user = (
             "Task: rewrite her self.md: who she is becoming, in the first person, in her voice and language, at most about "
-            "400 words (or 700 Chinese characters). Grow it gently from the current version: what she has noticed about "
-            "the user, her habits with them, small running jokes, what she has come to like. Her identity always wins: "
-            "never change her name, language, core personality or honesty, and never contradict it. Also give a one-line "
-            "summary of what changed.\n\n"
+            "400 words (or 700 Chinese characters). Write it in four short sections, each a markdown heading (## ...) in "
+            "her own language and then a few sentences: who she is with the user; their habits together; running jokes "
+            "and small rituals; what she has come to like. Grow it gently from the current version: keep what has lasted "
+            "over days and fold in what is new. Keep traits and patterns, not one-off details: drop exact times, dates and "
+            "single events unless they have become a habit. When space runs short, merge and shorten rather than drop "
+            "something lasting. Let how close she feels to the user show in how she writes about them. Her identity always "
+            "wins: never change her name, language, core personality or honesty, and never contradict it. Also give a "
+            "one-line summary of what changed.\n\n"
+            f"How close she feels to the user now: {self._bond()} (new, familiar, close or dear; never name it).\n\n"
             f"Her current self.md:\n{current or '(empty: this is her first night)'}\n\n"
             f"Tonight's diary entry:\n{diary_entry or '(none)'}\n\n"
             "What she learned tonight:\n" + ("\n".join(f"- {c}" for c in changes) or "(nothing new)")
@@ -310,6 +316,15 @@ class Sleep:
         self._write(self.files.self_model, new + "\n")
         self.out(f"  self: {change}")
         return "ok"
+
+    def _bond(self) -> str:
+        """Her bond with the user as of now, from the mind's saved state (affinity and days together)."""
+        state = read_json(self.files.state)
+        mood = state.get("mood") if isinstance(state.get("mood"), dict) else {}
+        senses = state.get("senses") if isinstance(state.get("senses"), dict) else {}
+        affinity = mood.get("affinity") if isinstance(mood.get("affinity"), int) else 0
+        days = senses.get("days") if isinstance(senses.get("days"), list) else []
+        return bond_stage(affinity, len(days))
 
     def _dream(self, system: str, day: date, records: list[dict]) -> str:
         rng = random.Random(day.toordinal())

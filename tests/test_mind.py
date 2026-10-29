@@ -1311,3 +1311,57 @@ def test_the_prompt_tells_what_came_with_the_moment():
         "At the same moment: Milestone: 100 turns of work finished together since she arrived. "
         "A new part of the day has begun: it is evening now (18:00). She may mention it too, briefly, if it fits."
     )
+
+
+# --- her bond with the user -------------------------------------------------------------------
+
+
+def test_chats_raise_affinity_too_within_the_same_daily_cap():
+    from mind.mood import AFFINITY_DAILY
+
+    mood = Mood()
+    for kind in ("pat", "chat", "chat", "pat", "chat", "chat", "pat"):
+        mood.apply(kind, DAY)
+    assert mood.affinity == AFFINITY_DAILY == 5
+    mood.apply("greeting", DAY + timedelta(days=1))
+    assert mood.affinity == 5, "other moments never move it"
+
+
+@pytest.mark.parametrize(
+    "affinity, days, stage",
+    [
+        (0, 0, "new"),
+        (9, 30, "new"),
+        (10, 2, "new"),
+        (10, 3, "familiar"),
+        (100, 6, "familiar"),
+        (30, 7, "close"),
+        (59, 30, "close"),
+        (60, 21, "dear"),
+        (100, 400, "dear"),
+    ],
+)
+def test_a_bond_stage_needs_both_its_affinity_and_its_days(affinity, days, stage):
+    from mind.mood import bond_stage
+
+    assert bond_stage(affinity, days) == stage
+
+
+def test_the_system_prompt_explains_the_stages_once():
+    text = system_prompt("ID", "")
+    assert text.count("- familiar:") == 1 and "Never name the stage." in text
+    assert text == system_prompt("ID", ""), "still stable, so it caches"
+
+
+def test_moments_and_chats_name_her_bond(mind):
+    run(mind.handle({"type": "event", "event": ev("SessionStart", source="startup")}))
+    assert "How close she feels to the user: new." in mind.client.calls[-1]["messages"][0]["content"]
+    mind.mood.affinity = 40
+    mind.senses.days = [f"2026-10-{d:02d}" for d in range(20, 29)]
+    run(mind.handle({"type": "chat", "text": "我回来啦"}))
+    assert "How close she feels to the user: close." in mind.client.calls[-1]["messages"][0]["content"]
+
+
+def test_a_prompt_without_a_bond_leaves_the_line_out():
+    text = user_prompt("pat", {"zone": "head"}, now=DAY, display={}, today={}, mood="calm", energy=50, recent=[], project=Redactor(False))
+    assert "How close" not in text

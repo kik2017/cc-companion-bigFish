@@ -118,6 +118,8 @@ Off by default. It needs an API key; see step 5 above.
 
 **Her day ends at 5 am.** After it ends, once you have been away for half an hour, she sleeps: she writes a diary entry, updates what she knows about you, rewrites a little of who she is becoming, and sometimes dreams. She may tell you her dream the next morning.
 
+**She grows closer to you.** Pats and chats, day after day, slowly make her more at ease with you: shy at first, then familiar and teasing, then warm, with running jokes of your own. It cannot be rushed; it takes both the attention and the days.
+
 **Make her your own.** Her name is 汐 (Shio) and she speaks Simplified Chinese by default. Open her folder and edit `identity.md` to change her name, personality, language, or what she calls you.
 
 ### What it costs
@@ -177,6 +179,9 @@ The source is here under the MIT license. A developer guide is coming. Until the
 **2026-10-30**
 - She can look things up on the web, if you let her. Turn on **Persona → Web search** (Normal: 10 searches a day; Unlimited or your own number too), and she may search to answer what you ask in the chat box. Searches show in the Today line and count toward her daily limit.
 - The chat box waits up to a minute for her answer, so a search has time to finish.
+- She grows closer to you over the days, with your pats and chats, and it shows in how she talks to you.
+- Who she is becoming is kept in a few sections, holding on to what lasts about the two of you and letting one-off details go.
+- Fixed: something that happened just as she greeted you (a day-together milestone, say) was dropped; now she can mention both.
 
 **2026-10-29**
 - Fixed: when your computer was off as her day ended, she now sleeps as soon as she starts again, even if she greets you first.

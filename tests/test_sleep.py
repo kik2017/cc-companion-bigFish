@@ -8,7 +8,7 @@ import pytest
 from mind import facts as facts_mod
 from mind.budget import Budget
 from mind.core import Mind
-from mind.files import DEFAULT_CONFIG, Files, read_json
+from mind.files import DEFAULT_CONFIG, Files, read_json, write_json
 from mind.senses import Senses, day_of, tool_label
 from mind.sleep import PASSES, Sleep, grounded, timeline
 
@@ -456,3 +456,23 @@ def test_known_facts_reach_her_lines(files):
 
 def test_passes_are_in_order():
     assert PASSES == ("diary", "consolidate", "self", "dream")
+
+
+def test_the_self_pass_asks_for_lasting_sections_in_the_light_of_her_bond(files):
+    a_day(files)
+    write_json(files.state, {"mood": {"affinity": 12}, "senses": {"days": ["2026-10-25", "2026-10-26", "2026-10-27"]}})
+    voice = FakeVoice()
+    Sleep(files, voice).run(DAY)
+    (prompt,) = [user for name, _system, user, _effort in voice.calls if name == "self"]
+    assert "four short sections, each a markdown heading" in prompt
+    assert "drop exact times, dates and single events unless they have become a habit" in prompt
+    assert "How close she feels to the user now: familiar" in prompt
+
+
+def test_the_self_pass_reads_an_odd_state_as_a_new_bond(files):
+    a_day(files)
+    write_json(files.state, {"mood": "x", "senses": {"days": "lots"}})
+    voice = FakeVoice()
+    Sleep(files, voice).run(DAY)
+    (prompt,) = [user for name, _system, user, _effort in voice.calls if name == "self"]
+    assert "How close she feels to the user now: new" in prompt

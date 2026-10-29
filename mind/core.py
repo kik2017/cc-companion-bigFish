@@ -59,7 +59,7 @@ from companion.server import SAY_INTERVAL_S, UNPRINTABLE
 from . import facts as facts_mod
 from .budget import OUT_OF_LINES, Budget
 from .files import CHOICES, Files, read_json, valid_config, write_json
-from .mood import Mood, energy_at
+from .mood import Mood, bond_stage, energy_at
 from .prompts import Redactor, chat_prompt, system_prompt, user_prompt
 from .senses import AWAY_AFTER, Moment, Senses, day_of
 from .sleep import IDLE_BEFORE_SLEEP, Sleep
@@ -289,6 +289,7 @@ class Mind:
             project=self.redact,
             dream=dream,
             also=[(m.kind, m.detail) for m in also],
+            bond=self._bond(),
         )
         log.info("moment %s: asking for a line", moment.kind)
         return lambda: self._speak(moment, system, user, mood)
@@ -329,6 +330,9 @@ class Mind:
         if self.last_say is None or self.config.get("no_gap") is True:
             return 0.0
         return max(0.0, SAY_INTERVAL_S - (now - self.last_say).total_seconds())
+
+    def _bond(self) -> str:
+        return bond_stage(self.mood.affinity, self.senses.summary()["days_together"])
 
     # --- the desk ------------------------------------------------------------------------
 
@@ -403,6 +407,7 @@ class Mind:
             mood=mood,
             energy=energy_at(now),
             project=self.redact,
+            bond=self._bond(),
         )
         log.info("chat: asking for an answer")
         return [lambda: self._answer(system, user)]

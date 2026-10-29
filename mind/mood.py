@@ -5,7 +5,12 @@ Two numbers:
   energy    0..100, from the hour of day, minus a little for a long work streak
 
 They name one of model.MOODS, which picks her clip in Quiet mode and is handed to the
-model so her words match her body. Affinity grows with pats, at most AFFINITY_DAILY a day.
+model so her words match her body.
+
+Affinity grows with pats and chats, at most AFFINITY_DAILY a day, and never falls. With
+the days together it sets her bond (bond_stage): new, familiar, close, dear. A stage
+needs both its affinity and its days, so a bond cannot be rushed in one afternoon of
+pats; her prompts name the stage, and it colours how she speaks.
 """
 
 from __future__ import annotations
@@ -34,6 +39,15 @@ NUDGES = {
     "day_part": 0,
 }
 PROUD_AFTER = {"long_done", "milestone"}
+AFFINITY_KINDS = {"pat", "chat"}
+# (stage, affinity, days together) needed for it, lowest first.
+BOND_STAGES = (("new", 0, 0), ("familiar", 10, 3), ("close", 30, 7), ("dear", 60, 21))
+
+
+def bond_stage(affinity: int, days_together: int) -> str:
+    """Her bond with the user: the highest stage whose affinity and days together are both reached."""
+    reached = [name for name, need, days in BOND_STAGES if affinity >= need and days_together >= days]
+    return reached[-1]
 
 
 def energy_at(when: datetime) -> int:
@@ -63,7 +77,7 @@ class Mood:
         self._ease(now)
         self.valence = max(-100.0, min(100.0, self.valence + NUDGES.get(kind, 0)))
         self.last_kind = kind
-        if kind == "pat":
+        if kind in AFFINITY_KINDS:
             day = now.date().isoformat()
             if self.affinity_day != day:
                 self.affinity_day, self.affinity_today = day, 0

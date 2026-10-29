@@ -22,7 +22,14 @@ Reply with JSON:
 - "mood": the mood that fits the line, one of: {moods}.
 - "notice": optionally, one short factual note about the user's habits worth remembering later (for example "often works past 1am"), taken only from the input; "" if nothing new.
 
-Never invent events, numbers, names or facts that are not in the input."""
+Never invent events, numbers, names or facts that are not in the input.
+
+How close she feels to the user grows slowly, with days together, pats and chats; the input says how close she is now:
+- new: she is still getting to know them; friendly, a little shy and polite.
+- familiar: at ease with them; she teases lightly and mentions their habits.
+- close: warm and playful; running jokes, glad when they come back, she says when she missed them.
+- dear: like an old friend; affectionate, comfortable with quiet, small private jokes.
+Let it colour how she speaks, always within her identity. Never name the stage."""
 
 REPLY_SCHEMA = {
     "type": "object",
@@ -162,6 +169,7 @@ def user_prompt(
     project,
     dream: str | None = None,
     also: list[tuple[str, dict]] | tuple = (),
+    bond: str | None = None,
 ) -> str:
     """The moment's prompt; `also` holds (kind, detail) of moments that came with it, told in the same line."""
     lines = [describe_moment(kind, detail, project)]
@@ -173,7 +181,7 @@ def user_prompt(
     lines.append(f"Local time: {now.strftime('%A %d %B, %H:%M')}.")
     if dream:
         lines.append(f"Last night she dreamt this (she may mention it, briefly, if it fits): {dream}")
-    lines += _context(display=display, today=today, mood=mood, energy=energy, project=project)
+    lines += _context(display=display, today=today, mood=mood, energy=energy, project=project, bond=bond)
     if recent:
         lines.append("Her recent lines, oldest first (do not repeat them):")
         lines.extend(f"- {line}" for line in recent)
@@ -191,6 +199,7 @@ def chat_prompt(
     energy: int,
     project,
     searches: int = 0,
+    bond: str | None = None,
 ) -> str:
     """The user typed `text` to her; `history` is today's conversation before it, as (who, text) with who "user" or "her".
 
@@ -198,7 +207,7 @@ def chat_prompt(
     """
     lines = [CHAT_FRAME] + ([SEARCH_NOTE.format(n=searches)] if searches > 0 else [])
     lines.append(f"Local time: {now.strftime('%A %d %B, %H:%M')}.")
-    lines += _context(display=display, today=today, mood=mood, energy=energy, project=project)
+    lines += _context(display=display, today=today, mood=mood, energy=energy, project=project, bond=bond)
     if history:
         lines.append("Your conversation so far today, oldest first:")
         lines.extend(f"- {'The user' if who == 'user' else 'She'}: {said}" for who, said in history)
@@ -206,8 +215,8 @@ def chat_prompt(
     return "\n".join(lines)
 
 
-def _context(*, display: dict, today: dict, mood: str, energy: int, project) -> list[str]:
-    """What Claude Code is doing, today's tallies and her mood: the part of every prompt that is not the moment."""
+def _context(*, display: dict, today: dict, mood: str, energy: int, project, bond: str | None = None) -> list[str]:
+    """What Claude Code is doing, today's tallies, her mood and her bond: the part of every prompt that is not the moment."""
     lines = []
     sessions = display.get("sessions") if isinstance(display.get("sessions"), int) else 0
     if sessions:
@@ -231,4 +240,6 @@ def _context(*, display: dict, today: dict, mood: str, energy: int, project) -> 
         f"Together: {today.get('days_together', 0)} day(s), {today.get('done_total', 0)} turns finished in all."
     )
     lines.append(f"Her mood: {mood}; her energy: {energy}/100.")
+    if bond:
+        lines.append(f"How close she feels to the user: {bond}.")
     return lines
