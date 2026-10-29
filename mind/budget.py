@@ -22,7 +22,16 @@ With "no_gap" on (the menu's "No pause"), min_gap_s and CHAT_HUSH are skipped.
 A chat reply (you typed to her) needs only her limit: quiet hours, a waiting session
 and the gaps do not apply, since you asked.
 
-Spend is counted from each response's usage at the model's list price, per local day.
+Web search ("search" in config.json, the menu's Persona > Web search) is for chat replies
+only, at most SEARCHES_PER_ANSWER a reply, and one of:
+  "off"        no searching (the default)
+  "normal"     searches_per_day searches a day
+  "unlimited"  no daily count
+  a number N   at most N searches a day
+Searches are counted until midnight, from what each response says it used.
+
+Spend is counted from each response's usage at the model's list price, plus SEARCH_USD
+for each search, per local day. Under the normal limit it all counts toward daily_usd.
 """
 
 from __future__ import annotations
@@ -38,6 +47,8 @@ PRICES = {
     "claude-opus-5-5": (4.00, 20.00),
 }
 UNKNOWN_PRICE = (10.00, 50.00)  # an unlisted model is costed high, so the cap trips early
+SEARCH_USD = 0.01  # each web search, on top of the tokens its results add
+SEARCHES_PER_ANSWER = 2
 ALWAYS_TALK = {"pat"}
 QUIET_HOURS_OK = {"late_night", "pat"}
 CHAT_PER_HOUR = 60
@@ -51,7 +62,8 @@ def cost_usd(model: str, usage: dict) -> float:
     written = usage.get("cache_creation_input_tokens", 0) or 0
     read = usage.get("cache_read_input_tokens", 0) or 0
     tokens_out = usage.get("output_tokens", 0) or 0
-    return (tokens_in * inp + written * inp * 1.25 + read * inp * 0.1 + tokens_out * out) / 1_000_000
+    searches = usage.get("web_search_requests", 0) or 0
+    return (tokens_in * inp + written * inp * 1.25 + read * inp * 0.1 + tokens_out * out) / 1_000_000 + searches * SEARCH_USD
 
 
 def in_quiet_hours(hour: int, quiet: list[int]) -> bool:
@@ -71,6 +83,18 @@ def describe_limit(config: dict) -> str:
     else:
         words = f"at most {config['lines_per_hour']} lines an hour and ${config['daily_usd']:.2f} a day"
     return words + (", no pause" if config.get("no_gap") is True else "")
+
+
+def describe_search(config: dict) -> str:
+    """Her web search setting in a few words, for the log."""
+    search = config.get("search", "off")
+    if search == "unlimited":
+        return "web search with no daily count"
+    if search == "normal":
+        search = config.get("searches_per_day", 0)
+    if isinstance(search, int) and not isinstance(search, bool):
+        return f"web search up to {search:,} a day"
+    return "no web search"
 
 
 class Budget:
@@ -119,6 +143,23 @@ class Budget:
         self.chatted.append(now)
         self._count(now)
 
+    def searches_for_answer(self, now: datetime) -> int:
+        """How many web searches her next chat reply may make: 0 when search is off or today's are used up."""
+        search = self.config.get("search", "off")
+        if search == "unlimited":
+            return SEARCHES_PER_ANSWER
+        if search == "normal":
+            search = self.config.get("searches_per_day", 0)
+        if not isinstance(search, int) or isinstance(search, bool):
+            return 0
+        return max(0, min(SEARCHES_PER_ANSWER, search - self.searches_today(now)))
+
+    def searches_today(self, now: datetime) -> int:
+        if self.spend.get("date") != now.date().isoformat():
+            return 0
+        searches = self.spend.get("searches")
+        return searches if isinstance(searches, int) and not isinstance(searches, bool) else 0
+
     def record(self, model: str, usage: dict, now: datetime) -> float:
         """Add one response's usage to today's spend; the cost of this call."""
         today = self._today(now)
@@ -128,6 +169,7 @@ class Budget:
         today["input_tokens"] += (usage.get("input_tokens") or 0) + (usage.get("cache_creation_input_tokens") or 0)
         today["cached_tokens"] += usage.get("cache_read_input_tokens") or 0
         today["output_tokens"] += usage.get("output_tokens") or 0
+        today["searches"] += usage.get("web_search_requests") or 0
         return cost
 
     def spent_today(self, now: datetime) -> float:
@@ -163,8 +205,11 @@ class Budget:
         """Today's spend record, started fresh when the day changed."""
         day = now.date().isoformat()
         if self.spend.get("date") != day:
-            self.spend = {"date": day, "usd": 0.0, "calls": 0, "lines": 0, "input_tokens": 0, "cached_tokens": 0, "output_tokens": 0}
-        for key in ("usd", "calls", "lines", "input_tokens", "cached_tokens", "output_tokens"):
+            self.spend = {
+                "date": day, "usd": 0.0, "calls": 0, "lines": 0, "searches": 0,
+                "input_tokens": 0, "cached_tokens": 0, "output_tokens": 0,
+            }  # fmt: skip
+        for key in ("usd", "calls", "lines", "searches", "input_tokens", "cached_tokens", "output_tokens"):
             if not isinstance(self.spend.get(key), (int, float)) or isinstance(self.spend.get(key), bool):
                 self.spend[key] = 0
         return self.spend

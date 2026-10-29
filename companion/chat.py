@@ -24,7 +24,7 @@ from .bubble import to_rect
 from .placement import place_beside
 
 CHAT_MAX_CHARS = 300  # mind/core.py cuts to the same
-REPLY_TIMEOUT_S = 45
+REPLY_TIMEOUT_S = 60  # room for an answer that searches the web; the daemon's REPLY_WINDOW_S is the same
 IDLE_CLOSE_S = 180
 WIDTH = 280
 INNER_W = WIDTH - 24  # the frame's side margins

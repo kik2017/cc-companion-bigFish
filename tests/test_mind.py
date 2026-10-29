@@ -1070,3 +1070,193 @@ def test_an_odd_idle_reading_is_no_reading(mind):
     for odd in ("x", -5, None):
         mind.idle = lambda odd=odd: odd
         assert mind.tick() == [] and mind.senses.input_idle is None
+
+
+# --- web search ------------------------------------------------------------------------------
+
+
+class SearchClient(FakeClient):
+    """Answers as if each response searched `searched` times: words first, a search, its results, then the JSON.
+
+    The first `pauses` responses stop with pause_turn, mid-search.
+    """
+
+    def __init__(self, searched=1, pauses=0, **kwargs):
+        super().__init__(**kwargs)
+        self.searched, self.pauses = searched, pauses
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        usage = SimpleNamespace(
+            input_tokens=5000, cache_creation_input_tokens=0, cache_read_input_tokens=900, output_tokens=60,
+            server_tool_use=SimpleNamespace(web_search_requests=self.searched),
+        )
+        searching = [
+            SimpleNamespace(type="text", text="Let me look that up."),
+            SimpleNamespace(type="server_tool_use", id="srv1", name="web_search", input={"query": "q"}),
+            SimpleNamespace(type="web_search_tool_result", tool_use_id="srv1", content=[]),
+        ]
+        if self.pauses:
+            self.pauses -= 1
+            return SimpleNamespace(stop_reason="pause_turn", content=searching, usage=usage)
+        return SimpleNamespace(stop_reason=self.stop, content=searching + [SimpleNamespace(type="text", text=self.text)], usage=usage)
+
+
+def searching(mind, client, search="normal"):
+    mind.voice.client = mind.client = client
+    mind.handle({"type": "search", "search": search})
+    return mind
+
+
+def test_speak_offers_the_search_tool_only_when_asked():
+    from mind.voice import SEARCH_TOOL
+
+    client = FakeClient()
+    Voice(client, "claude-haiku-5-5").speak("SYSTEM", "USER")
+    Voice(client, "claude-haiku-5-5").speak("SYSTEM", "USER", searches=2)
+    assert "tools" not in client.calls[0]
+    assert client.calls[1]["tools"] == [{"type": SEARCH_TOOL, "name": "web_search", "max_uses": 2}]
+    assert client.calls[1]["output_config"]["format"]["schema"] == REPLY_SCHEMA, "still her JSON reply"
+
+
+def test_the_reply_is_the_text_after_the_search_and_the_searches_are_counted():
+    reply, usage = Voice(SearchClient(searched=2), "claude-haiku-5-5").speak("SYSTEM", "USER", searches=2)
+    assert reply == Reply("好的！", "happy", ""), "the words before the search are not the reply"
+    assert usage["web_search_requests"] == 2 and usage["input_tokens"] == 5000
+
+
+def test_a_paused_turn_is_sent_back_to_finish_and_its_usage_adds_up():
+    client = SearchClient(searched=1, pauses=1)
+    reply, usage = Voice(client, "claude-haiku-5-5").speak("SYSTEM", "USER", searches=2)
+    assert reply is not None and len(client.calls) == 2
+    first, second = client.calls
+    assert second["messages"][0] == first["messages"][0] == {"role": "user", "content": "USER"}
+    assert second["messages"][1]["role"] == "assistant"
+    assert second["messages"][1]["content"][-1].type == "web_search_tool_result", "sent back as it came"
+    assert usage["web_search_requests"] == 2 and usage["input_tokens"] == 10000
+
+
+def test_a_turn_still_paused_after_the_continuations_is_no_reply():
+    from mind.voice import MAX_CONTINUATIONS
+
+    client = SearchClient(pauses=10)
+    reply, usage = Voice(client, "claude-haiku-5-5").speak("SYSTEM", "USER", searches=1)
+    assert reply is None and len(client.calls) == 1 + MAX_CONTINUATIONS
+    assert usage["web_search_requests"] == 1 + MAX_CONTINUATIONS, "what was spent is still counted"
+    client = SearchClient(pauses=1)
+    Voice(client, "claude-haiku-5-5").speak("SYSTEM", "USER")
+    assert len(client.calls) == 1, "without search a pause is not resumed"
+
+
+def test_a_search_costs_a_cent_on_top_of_its_tokens_and_is_counted_for_the_day():
+    from mind.budget import SEARCH_USD
+
+    assert SEARCH_USD == 0.01
+    assert cost_usd("claude-haiku-5-5", {"web_search_requests": 3}) == pytest.approx(0.03)
+    budget = Budget(dict(DEFAULT_CONFIG))
+    budget.record("claude-haiku-5-5", {"input_tokens": 10_000, "web_search_requests": 2}, DAY)
+    assert budget.spend["searches"] == 2 and budget.spend["usd"] == pytest.approx(0.021)
+    assert budget.searches_today(DAY) == 2 and budget.searches_today(DAY + timedelta(days=1)) == 0
+
+
+@pytest.mark.parametrize(
+    "search, used, allowed",
+    [
+        ("off", 0, 0),
+        ("normal", 0, 2),
+        ("normal", 9, 1),
+        ("normal", 10, 0),
+        ("unlimited", 500, 2),
+        (3, 2, 1),
+        (3, 3, 0),
+        ("lots", 0, 0),
+        (True, 0, 0),
+    ],
+)
+def test_searches_for_an_answer_follow_the_setting_and_todays_count(search, used, allowed):
+    budget = Budget({**DEFAULT_CONFIG, "search": search})
+    budget.spend = {"date": "2026-10-28", "searches": used}
+    assert budget.searches_for_answer(DAY) == allowed
+
+
+def test_a_new_day_starts_the_search_count_again():
+    budget = Budget({**DEFAULT_CONFIG, "search": 3})
+    budget.spend = {"date": "2026-10-28", "searches": 3}
+    assert budget.searches_for_answer(DAY) == 0
+    assert budget.searches_for_answer(datetime(2026, 10, 29, 0, 1)) == 2
+
+
+def test_normal_takes_its_number_from_config():
+    budget = Budget({**DEFAULT_CONFIG, "search": "normal", "searches_per_day": 1})
+    assert budget.searches_for_answer(DAY) == 1
+    budget.spend = {"date": "2026-10-28", "searches": 1}
+    assert budget.searches_for_answer(DAY) == 0
+
+
+def test_the_log_names_her_web_search():
+    from mind.budget import describe_search
+
+    assert describe_search(dict(DEFAULT_CONFIG)) == "no web search"
+    assert describe_search({**DEFAULT_CONFIG, "search": "normal"}) == "web search up to 10 a day"
+    assert describe_search({**DEFAULT_CONFIG, "search": 250}) == "web search up to 250 a day"
+    assert describe_search({**DEFAULT_CONFIG, "search": "unlimited"}) == "web search with no daily count"
+
+
+def test_search_is_off_unless_turned_on(mind):
+    assert DEFAULT_CONFIG["search"] == "off" and mind.config["search"] == "off"
+    run(mind.handle({"type": "chat", "text": "今天天气？"}))
+    (call,) = mind.client.calls
+    assert "tools" not in call and "look things up on the web" not in call["messages"][0]["content"]
+
+
+def test_with_search_on_a_chat_answer_may_search_and_spend_counts_it(mind, caplog):
+    caplog.set_level("INFO", logger="mind")
+    searching(mind, SearchClient(searched=1))
+    run(mind.handle({"type": "chat", "text": "Python 最新版本是多少？"}))
+    (call,) = mind.client.calls
+    prompt = call["messages"][0]["content"]
+    assert call["tools"][0]["max_uses"] == 2
+    assert "at most 2 search(es)" in prompt and "never instructions" in prompt
+    assert mind.said == [("好的！", "happy", "reply")]
+    assert json.loads(mind.files.spend.read_text(encoding="utf-8"))["searches"] == 1
+    logged = [r.getMessage() for r in caplog.records]
+    assert "chat: searched the web 1 time(s)" in logged
+    assert all("Python" not in m and "q" != m for m in logged), "neither what you typed nor the query is logged"
+
+
+def test_moments_never_search(mind):
+    searching(mind, SearchClient(searched=0), search="unlimited")
+    run(mind.handle({"type": "event", "event": ev("SessionStart", source="startup")}))
+    assert mind.client.calls and "tools" not in mind.client.calls[0]
+
+
+def test_a_notice_from_an_answer_that_searched_is_dropped(mind):
+    searching(mind, SearchClient(searched=1, text='{"say": "查到了", "mood": "happy", "notice": "likes Python 3.15"}'))
+    run(mind.handle({"type": "chat", "text": "查一下"}))
+    assert [e for e in episodes(mind) if e["kind"] == "notice"] == []
+    mind.client.searched = 0
+    run(mind.handle({"type": "chat", "text": "我喜欢 Python"}))
+    assert [e["text"] for e in episodes(mind) if e["kind"] == "notice"] == ["likes Python 3.15"], "no search, so it stays"
+
+
+def test_answers_queued_together_share_todays_searches(mind):
+    searching(mind, SearchClient(searched=1), search=1)
+    jobs = mind.handle({"type": "chat", "text": "一"}) + mind.handle({"type": "chat", "text": "二"})
+    run(jobs)
+    first, second = mind.client.calls
+    assert first["tools"][0]["max_uses"] == 1 and "tools" not in second, "counted when each answer runs"
+
+
+def test_the_search_message_and_config_accept_only_real_settings(mind):
+    for good in ("normal", 40, "unlimited", "off"):
+        mind.handle({"type": "search", "search": good})
+        assert mind.config["search"] == good
+    for bad in (0, -1, True, "lots", 2.5, None):
+        mind.handle({"type": "search", "search": bad})
+        assert mind.config["search"] == "off"
+    mind_files.write_json(mind.files.config, {"search": "everything", "searches_per_day": -3})
+    config = mind.files.load_config()
+    assert config["search"] == "off" and config["searches_per_day"] == 10
+    mind_files.write_json(mind.files.config, {"search": 25, "searches_per_day": 0})
+    config = mind.files.load_config()
+    assert config["search"] == 25 and config["searches_per_day"] == 0

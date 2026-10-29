@@ -21,7 +21,7 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 - **Shows Claude Code's state:** thinking, reading and searching, editing files, running a command, delegating to subagents, waiting for you, done, errors and compacting.
 - **A status bubble** with the project, model, reasoning effort, subagents, task progress, how full the context is, and your 5-hour and 7-day usage.
 - **Reacts to you:** drag her anywhere, pat her head, poke her, touch her tail.
-- **Can talk (optional):** with your own Anthropic API key she says short lines at moments that matter, answers when you chat with her, and sleeps each night: she writes a diary, sorts out what she has learned about you, and sometimes dreams.
+- **Can talk (optional):** with your own Anthropic API key she says short lines at moments that matter, answers when you chat with her (and can look things up on the web, if you let her), and sleeps each night: she writes a diary, sorts out what she has learned about you, and sometimes dreams.
 
 ## See her move
 
@@ -102,16 +102,19 @@ Off by default. It needs an API key; see step 5 above.
 | Persona menu | What it does |
 | --- | --- |
 | Off / On / Quiet | On: she speaks and shows her mood. Quiet: moods only, no words and no cost. |
-| Today: … | How many lines she has said today and what they cost |
+| Today: … | How many lines she has said today (and web searches, once you use them) and what they cost |
 | Talk to her… | A small chat box beside her; she answers in her bubble, and the box keeps today's conversation |
 | What she knows… | What she has learned about you. Archive anything that is wrong and she stops using it |
 | Private today | Nothing from today is remembered (until 5 am) |
 | No pause | Lets her speak whenever something happens, with no gaps between lines (this can cost more) |
 | Limit | Normal (30 lines an hour, $0.50 a day), Unlimited, or your own number of lines a day |
+| Web search | Off (the default), Normal (10 searches a day), Unlimited, or your own number a day. She searches only to answer what you type in Talk to her |
 | Chattiness | Quiet, Normal or Chatty: how often she gets a chance to speak |
 | Open her folder | Her identity, diary, memories and settings, as plain files |
 
 **She notices when you are around.** While nobody is at the keyboard she keeps her lines to herself; when you come back she may greet you and tell you what finished while you were gone. She notices the afternoon, evening and night coming on, too. Pat her while she is mid-sentence and she answers once she has finished.
+
+**She can look things up.** Turn on **Persona → Web search** and, when you ask her something current in the chat box (a new release, the weather, today's news), she may search the web, at most twice an answer, and tell you the gist in her bubble with the site it came from. She never searches on her own, and nothing she reads becomes something she "knows" about you.
 
 **Her day ends at 5 am.** After it ends, once you have been away for half an hour, she sleeps: she writes a diary entry, updates what she knows about you, rewrites a little of who she is becoming, and sometimes dreams. She may tell you her dream the next morning.
 
@@ -121,7 +124,8 @@ Off by default. It needs an API key; see step 5 above.
 
 - **Watching Claude Code is free.** It uses Claude Code's hooks and spends no tokens.
 - **Her voice uses your API key** with Claude Haiku, the cheapest model: about $0.0001 to $0.0003 per line or chat reply, and a few tenths of a cent for each night's sleep. A typical day is around one or two cents.
-- By default she stops at 30 lines an hour and $0.50 a day, then shows moods only. Change this under **Persona → Limit**; the menu always shows today's total.
+- **Web search costs more:** about $0.01 a search, plus a tenth of a cent or so for the pages she reads, so an answer that searches costs about a cent. It is off until you turn it on, and Normal allows 10 searches a day.
+- By default she stops at 30 lines an hour and $0.50 a day (searches included), then shows moods only. Change this under **Persona → Limit**; the menu always shows today's total.
 
 ## The status line
 
@@ -133,6 +137,7 @@ The status line needs a folder path without spaces or symbols. If yours has them
 
 - **Watching stays on your computer.** She listens only on your own machine (127.0.0.1) and keeps only event names, tool names, counts, the project folder's name and similar labels. Your prompts, code, files and Claude's replies are dropped on arrival and never stored.
 - **When she talks**, she sends Anthropic only those labels (what Claude Code is doing, times, counts, project folder names) and anything you type to her in the chat box. She never sees your code, prompts or Claude's replies.
+- **With web search on**, what you type in the chat box can become a search query. The search runs at Anthropic, through Anthropic's web search tool, as part of the same request; the app itself still talks only to Anthropic. The search results are never logged or saved; only her answer is kept, like any chat reply.
 - **To know whether you are at your desk**, she reads only how long it has been since you last used the keyboard or mouse: never what you typed or where you clicked.
 - **Her memories are plain files** in `%LOCALAPPDATA%\cc-companion\persona\`, on your computer only. Read them, edit them, or delete them.
 - **Your API key** is stored only as your Windows user environment variable `CC_COMPANION_API_KEY`. The app never writes it to a file or a log.
@@ -166,6 +171,27 @@ The whale-tail maid is used unless you choose a skin pack. A skin pack is a fold
 ## For developers
 
 The source is here under the MIT license. A developer guide is coming. Until then, `pip install -e ".[dev,mind]"` and `python -m pytest` get you started.
+
+## Changelog
+
+**2026-10-30**
+- She can look things up on the web, if you let her. Turn on **Persona → Web search** (Normal: 10 searches a day; Unlimited or your own number too), and she may search to answer what you ask in the chat box. Searches show in the Today line and count toward her daily limit.
+- The chat box waits up to a minute for her answer, so a search has time to finish.
+
+**2026-10-29**
+- Fixed: when your computer was off as her day ended, she now sleeps as soon as she starts again, even if she greets you first.
+
+**2026-10-28 (0.2.0)**
+- She notices when you are at your desk: no lines while you are away, and a greeting or a "welcome back" with what finished meanwhile when you return. She notices the afternoon, evening and night coming on.
+- A pat while she is mid-sentence is answered once she finishes.
+- A tray icon with **Set API key…** and **Connect to Claude Code**, and a portable Windows build that needs no Python.
+- **Talk to her:** a chat box that keeps today's conversation. What you tell her about yourself, she knows after a night's sleep.
+- **Private today**, **No pause**, **Limit**, **Chattiness**, **What she knows…**, and today's spend in the Persona menu.
+- Her voice and her sleep: short lines at moments that matter, and each night a diary, what she has learned about you, a little of who she is becoming, and sometimes a dream.
+- The bundled character's license is corrected to CC BY-NC-SA 4.0 (non-commercial).
+
+**2026-10-27**
+- First version: she watches Claude Code through its hooks and shows what it is doing, with a status bubble, done and error sounds, click and drag reactions, skin packs, and a status line for Claude Code in a terminal.
 
 ## Credits and licensing
 

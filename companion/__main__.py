@@ -101,6 +101,7 @@ class Controller(QObject):
             window.chat_sent.connect(self.on_chat)
             window.no_gap_changed.connect(self.on_no_gap)
             window.limit_changed.connect(lambda limit: mind.send({"type": "limit", "limit": limit}))
+            window.search_changed.connect(lambda search: mind.send({"type": "search", "search": search}))
 
     @Slot(object)
     def on_event(self, event: dict) -> None:

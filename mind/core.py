@@ -28,9 +28,13 @@ Messages from the daemon, one JSON object per line on stdin:
   {"type": "private", "day": "2026-10-28"} Private today: nothing of that day of hers is written (null: off)
   {"type": "no_gap", "on": true}           No pause (already saved to config.json)
   {"type": "limit", "limit": "unlimited"}  her limit: "normal", "unlimited" or N lines a day (saved too)
+  {"type": "search", "search": "normal"}   web search: "off", "normal", "unlimited" or N a day (saved too)
 
 A chat gets an answer sent as a reply (/say with "reply": true), which the daemon lets
-through once past its line interval because it asked for it. The conversation is kept in
+through once past its line interval because it asked for it. With web search on, the
+answer may search (budget.searches_for_answer, counted when the job runs, so answers
+queued together share today's searches); a notice from an answer that searched is
+dropped, since what she read is not something the user said. The conversation is kept in
 memory for the day and, unless the day is private, in her episodes as kind "chat", where
 sleep learns from what the user said. While a day is private, nothing is written to her
 episodes at all (events, moments, lines, notes or chats), so sleep has nothing of it.
@@ -38,6 +42,8 @@ episodes at all (events, moments, lines, notes or chats), so sleep has nothing o
 
 from __future__ import annotations
 
+import dataclasses
+import functools
 import logging
 import threading
 import unicodedata
@@ -148,6 +154,10 @@ class Mind:
             elif kind == "limit" and valid_config("limit", message.get("limit")):
                 self.config["limit"] = message["limit"]
                 log.info("limit %s", message["limit"])
+                return []
+            elif kind == "search" and valid_config("search", message.get("search")):
+                self.config["search"] = message["search"]
+                log.info("web search %s", message["search"])
                 return []
             elif kind == "private":
                 day = message.get("day")
@@ -354,7 +364,8 @@ class Mind:
         self.budget.take_chat(now)
         known = facts_mod.known(facts_mod.clean(read_json(self.files.facts)))
         system = system_prompt(self.files.identity_text(), self.files.self_text(), known)
-        user = chat_prompt(
+        user = functools.partial(
+            chat_prompt,
             text,
             history=history,
             now=now,
@@ -374,10 +385,21 @@ class Mind:
 
         return run
 
-    def _answer(self, system: str, user: str) -> None:
-        """A job: one API call, then her answer as a reply. A failed call sends nothing; the box times out and says so."""
-        reply, usage = self.voice.speak(system, user)
+    def _answer(self, system: str, user: Callable[..., str]) -> None:
+        """A job: one API call, then her answer as a reply. A failed call sends nothing; the box times out and says so.
+
+        `user` builds the prompt once the searches she may make are known.
+        """
+        with self.lock:
+            searches = self.budget.searches_for_answer(self.now())
+        if searches:
+            log.info("chat: she may search the web up to %d time(s)", searches)
+        reply, usage = self.voice.speak(system, user(searches=searches), searches=searches)
         now = self.now()
+        if usage.get("web_search_requests"):
+            log.info("chat: searched the web %d time(s)", usage["web_search_requests"])
+            if reply is not None and reply.notice:
+                reply = dataclasses.replace(reply, notice="")
         self._spent("chat", usage, reply, now, "chat")
         if reply is None:
             return

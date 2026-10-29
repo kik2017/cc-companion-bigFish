@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from companion import settings as prefs
 from companion.server import HOST, SAY_TOKEN_HEADER, port_from_env
 
-from .budget import describe_limit
+from .budget import describe_limit, describe_search
 from .core import Mind
 from .files import Files
 from .idle import input_idle_s
@@ -79,7 +79,7 @@ def main() -> int:
     token = os.environ.get("CC_COMPANION_SAY_TOKEN") or prefs.say_token_path().read_text(encoding="utf-8").strip()
     voice = Voice(anthropic.Anthropic(api_key=key, timeout=30.0, max_retries=1), config["model"])
     mind = Mind(files, config, voice, say_sender(token), idle=input_idle_s)
-    log.info("mind up: model %s, %s", config["model"], describe_limit(config))
+    log.info("mind up: model %s, %s, %s", config["model"], describe_limit(config), describe_search(config))
 
     inbox: queue.Queue = queue.Queue()
 

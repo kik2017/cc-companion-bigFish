@@ -123,6 +123,7 @@ class FakeWindow(QObject):
     private_changed = Signal(object)
     no_gap_changed = Signal(bool)
     limit_changed = Signal(object)
+    search_changed = Signal(object)
 
     def set_display(self, display):
         return False
@@ -224,3 +225,9 @@ def test_a_limit_change_reaches_the_mind(controller):
     for limit in ("unlimited", 500, "normal"):
         controller.window.limit_changed.emit(limit)
         assert controller.mind.sent[-1] == {"type": "limit", "limit": limit}
+
+
+def test_a_web_search_change_reaches_the_mind(controller):
+    for search in ("normal", 40, "unlimited", "off"):
+        controller.window.search_changed.emit(search)
+        assert controller.mind.sent[-1] == {"type": "search", "search": search}

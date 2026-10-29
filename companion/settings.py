@@ -56,8 +56,8 @@ def persona_dir() -> Path:
     return app_dir() / "persona"
 
 
-# The persona's chattiness, No pause, Limit and Private today live in her own config.json, which her mind
-# reads at start; the menu writes them there too. mind/files.py holds the same choices and
+# The persona's chattiness, No pause, Limit, Web search and Private today live in her own
+# config.json, which her mind reads at start; the menu writes them there too. mind/files.py holds the same choices and
 # default, and mind/senses.py the same day boundary.
 CHATTINESS = ("quiet", "normal", "chatty")
 DEFAULT_CHATTINESS = "normal"
@@ -158,6 +158,35 @@ def write_no_gap(on: bool) -> bool:
     return _write_persona_config("no_gap", bool(on))
 
 
+# Web search for her chat replies, as mind/budget.py reads it: "off", "normal"
+# (searches_per_day searches a day), "unlimited", or N searches a day. Defaults as in mind/files.py.
+SEARCH_MODES = ("off", "normal", "unlimited")
+DEFAULT_SEARCHES_PER_DAY = 10
+MAX_DAILY_SEARCHES = 10_000
+
+
+def valid_search(value: object) -> bool:
+    return value in SEARCH_MODES or (isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= MAX_DAILY_SEARCHES)
+
+
+def read_search() -> str | int:
+    value = _persona_config().get("search")
+    return value if valid_search(value) else "off"
+
+
+def write_search(value: str | int) -> bool:
+    """Set her web search, keeping every other key; False if `value` is not a mode or 1..MAX_DAILY_SEARCHES."""
+    if not valid_search(value):
+        return False
+    return _write_persona_config("search", value)
+
+
+def read_normal_searches() -> int:
+    """Searches a day under Normal, from her config.json."""
+    value = _persona_config().get("searches_per_day")
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else DEFAULT_SEARCHES_PER_DAY
+
+
 def read_private_day() -> str | None:
     """The day of hers marked private, if any (it may be an earlier day, already over)."""
     value = _persona_config().get("private_day")
@@ -190,6 +219,15 @@ def read_spend_today(today: date | None = None) -> tuple[int, float]:
         lines if isinstance(lines, int) and not isinstance(lines, bool) else 0,
         float(usd) if _non_negative(usd) else 0.0,
     )
+
+
+def read_searches_today(today: date | None = None) -> int:
+    """Web searches she has made today; 0 if none yet."""
+    raw = _read_persona_json("spend.json")
+    searches = raw.get("searches")
+    if raw.get("date") != (today or date.today()).isoformat():
+        return 0
+    return searches if isinstance(searches, int) and not isinstance(searches, bool) and searches >= 0 else 0
 
 
 def read_facts() -> list[dict]:

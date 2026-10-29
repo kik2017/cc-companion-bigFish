@@ -73,6 +73,19 @@ DAILY_LINES_PROMPT = (
     "Each is one API call, about $0.0001-0.0003 with Haiku,\n"
     "so 1,000 a day is roughly $0.10-0.30."
 )
+# Searches an answer, as mind/budget.py's SEARCHES_PER_ANSWER.
+SEARCH_TIP = (
+    "She searches only to answer what you type in Talk to her, at most 2 searches an answer.\n"
+    "What you typed goes to Anthropic's web search as the query.\n"
+    "Each search costs about $0.01, plus about $0.001-0.002 for the pages she reads."
+)
+SEARCH_WARNING = "Warning: this might incur high API cost.\n" + SEARCH_TIP
+DEFAULT_CUSTOM_SEARCHES = 30
+DAILY_SEARCHES_PROMPT = (
+    "Web searches a day (counted until midnight), for her chat answers only.\n"
+    "Each is about $0.01 plus the pages she reads,\n"
+    "so 100 a day is roughly $1.10-1.20."
+)
 
 # "first paint" is logged once per process; a relaunch is timed from spawn to this line.
 _first_paint_logged = False
@@ -98,10 +111,14 @@ def reveal(folder: Path) -> bool:
 
 
 def spend_text() -> str:
-    """The menu's readout of today's lines and dollars, against her limit."""
+    """The menu's readout of today's lines, searches (once search is on or used) and dollars, against her limits."""
     lines, usd = prefs.read_spend_today()
     limit = prefs.read_limit()
     text = f"Today: {lines:,} lines" + (f" of {limit:,}" if isinstance(limit, int) else "")
+    searches, search = prefs.read_searches_today(), prefs.read_search()
+    if searches or search != "off":
+        allowed = prefs.read_normal_searches() if search == "normal" else search
+        text += f" · {searches:,} searches" + (f" of {allowed:,}" if isinstance(allowed, int) else "")
     text += f" · ${usd:.3f}"
     if limit == "normal":
         text += f" of ${prefs.read_normal_limit()[1]:.2f}"
@@ -110,13 +127,22 @@ def spend_text() -> str:
 
 def ask_daily_lines(start: int) -> int | None:
     """Ask for a daily number of lines and replies, kept on top; None if cancelled."""
+    return _ask_count("Her daily limit", DAILY_LINES_PROMPT, start, prefs.MAX_DAILY_LINES, 50)
+
+
+def ask_daily_searches(start: int) -> int | None:
+    """Ask for a daily number of web searches, kept on top; None if cancelled."""
+    return _ask_count("Her web searches", DAILY_SEARCHES_PROMPT, start, prefs.MAX_DAILY_SEARCHES, 10)
+
+
+def _ask_count(title: str, label: str, start: int, maximum: int, step: int) -> int | None:
     dialog = QInputDialog()
-    dialog.setWindowTitle("Her daily limit")
+    dialog.setWindowTitle(title)
     dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint)
     dialog.setInputMode(QInputDialog.InputMode.IntInput)
-    dialog.setLabelText(DAILY_LINES_PROMPT)
-    dialog.setIntRange(1, prefs.MAX_DAILY_LINES)
-    dialog.setIntStep(50)
+    dialog.setLabelText(label)
+    dialog.setIntRange(1, maximum)
+    dialog.setIntStep(step)
     dialog.setIntValue(start)
     return dialog.intValue() if dialog.exec() else None
 
@@ -174,6 +200,7 @@ class CompanionWindow(QWidget):
     no_gap_changed = Signal(bool)  # No pause, saved in her config.json
     api_key_needed = Signal()  # the persona was switched on with no API key to be found
     limit_changed = Signal(object)  # "normal", "unlimited" or N lines a day, saved in her config.json
+    search_changed = Signal(object)  # web search: "off", "normal", "unlimited" or N a day, saved in her config.json
 
     def __init__(
         self,
@@ -228,8 +255,9 @@ class CompanionWindow(QWidget):
         self._release_is_click = True
         # Shows the persona folder; tests swap it so no Explorer window opens.
         self.reveal: Callable[[Path], bool] = reveal
-        # Asks for a custom daily limit; tests swap it so no dialog opens.
+        # Ask for a custom daily limit or number of searches; tests swap them so no dialog opens.
         self.ask_daily_lines: Callable[[int], int | None] = ask_daily_lines
+        self.ask_daily_searches: Callable[[int], int | None] = ask_daily_searches
         # Whether her mind will find an API key; tests swap it so the registry is never read.
         self.has_api_key: Callable[[], bool] = apikey.has_api_key
         self.move(self._initial_position())
@@ -301,6 +329,19 @@ class CompanionWindow(QWidget):
         current = prefs.read_limit()
         chosen = self.ask_daily_lines(current if isinstance(current, int) else DEFAULT_CUSTOM_LINES)
         return chosen is not None and self.set_limit(chosen)
+
+    def set_search(self, search: str | int) -> bool:
+        """Save her web search ("off", "normal", "unlimited" or N a day) and tell the mind; False if rejected."""
+        if not prefs.write_search(search):
+            return False
+        self.search_changed.emit(search)
+        return True
+
+    def choose_daily_searches(self) -> bool:
+        """Ask for N searches a day and set it; False if cancelled."""
+        current = prefs.read_search()
+        chosen = self.ask_daily_searches(current if isinstance(current, int) else DEFAULT_CUSTOM_SEARCHES)
+        return chosen is not None and self.set_search(chosen)
 
     def set_chattiness(self, level: str) -> bool:
         """Save her chattiness and tell the mind; False, with nothing changed, if `level` is not a choice."""
@@ -545,6 +586,7 @@ class CompanionWindow(QWidget):
                 no_gap.triggered.connect(self.set_no_gap)
                 submenu.setToolTipsVisible(True)  # menus hide action tooltips unless asked
                 self._limit_menu(submenu.addMenu("Limit"))
+                self._search_menu(submenu.addMenu("Web search"))
                 chatty = submenu.addMenu("Chattiness")
                 chatty_group = QActionGroup(chatty)
                 chatty_group.setExclusive(True)
@@ -568,8 +610,6 @@ class CompanionWindow(QWidget):
     def _limit_menu(self, menu: QMenu) -> None:
         """Persona > Limit: Normal, Unlimited, or a custom number of lines a day; the last two warn of cost."""
         menu.setToolTipsVisible(True)
-        group = QActionGroup(menu)
-        group.setExclusive(True)
         current = prefs.read_limit()
         lines, usd = prefs.read_normal_limit()
         custom = f"Custom: {current:,} lines a day…" if isinstance(current, int) else "Custom: lines a day…"
@@ -578,9 +618,29 @@ class CompanionWindow(QWidget):
             ("unlimited", "Unlimited", LIMIT_TIP, lambda: self.set_limit("unlimited")),
             ("custom", custom, LIMIT_TIP, self.choose_daily_limit),
         )
+        self._choice_items(menu, "limit", current, items)
+
+    def _search_menu(self, menu: QMenu) -> None:
+        """Persona > Web search: Off, Normal, Unlimited, or a custom number of searches a day; each says what it costs."""
+        menu.setToolTipsVisible(True)
+        current = prefs.read_search()
+        per_day = prefs.read_normal_searches()
+        custom = f"Custom: {current:,} searches a day…" if isinstance(current, int) else "Custom: searches a day…"
+        items = (
+            ("off", "Off", None, lambda: self.set_search("off")),
+            ("normal", f"Normal: {per_day} searches a day", SEARCH_TIP, lambda: self.set_search("normal")),
+            ("unlimited", "Unlimited", SEARCH_WARNING, lambda: self.set_search("unlimited")),
+            ("custom", custom, SEARCH_WARNING, self.choose_daily_searches),
+        )
+        self._choice_items(menu, "search", current, items)
+
+    def _choice_items(self, menu: QMenu, name: str, current: str | int, items: tuple) -> None:
+        """One exclusive choice per (key, label, tooltip, run); "custom" is checked when `current` is a number."""
+        group = QActionGroup(menu)
+        group.setExclusive(True)
         for key, label, tip, run in items:
             item = menu.addAction(label)
-            item.setObjectName(f"limit:{key}")
+            item.setObjectName(f"{name}:{key}")
             item.setCheckable(True)
             item.setChecked(key == current or (key == "custom" and isinstance(current, int)))
             if tip:

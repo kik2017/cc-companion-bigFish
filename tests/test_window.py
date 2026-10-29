@@ -332,7 +332,7 @@ def test_menu_checks_match_the_settings(window):
     checked = {
         a.objectName() for a in menu.findChildren(QAction) if a.isCheckable() and a.isChecked()
     }
-    assert checked == {"size:L", "bubble_mode:attention", "activity:quiet", "persona:quiet", "chattiness:normal", "limit:normal", "reduced_motion:toggle"}
+    assert checked == {"size:L", "bubble_mode:attention", "activity:quiet", "persona:quiet", "chattiness:normal", "limit:normal", "search:off", "reduced_motion:toggle"}
     assert action(menu, "size:S").data() == ("size", "S")
     assert action(menu, "subagents:toggle").data() == ("subagents", True)
     menu.deleteLater()

@@ -43,6 +43,8 @@ DEFAULT_CONFIG: dict = {
     "chattiness": "normal",  # quiet, normal or chatty: how many moments she gets to speak on (senses.PROFILES)
     "no_gap": False,  # True: no min_gap_s, no hush after a chat, no pat cooldown (the menu's "No pause")
     "limit": "normal",  # "normal" (lines_per_hour and daily_usd), "unlimited", or N lines and replies a day (budget.py)
+    "search": "off",  # web search for chat replies: "off", "normal" (searches_per_day), "unlimited", or N a day
+    "searches_per_day": 10,
 }
 CHOICES = {"chattiness": ("quiet", "normal", "chatty")}
 
@@ -52,6 +54,10 @@ def valid_config(name: str, value: object) -> bool:
     default = DEFAULT_CONFIG[name]
     if name == "limit":
         return value in ("normal", "unlimited") or (isinstance(value, int) and not isinstance(value, bool) and value >= 1)
+    if name == "search":
+        return value in ("off", "normal", "unlimited") or (isinstance(value, int) and not isinstance(value, bool) and value >= 1)
+    if name == "searches_per_day":
+        return isinstance(value, int) and not isinstance(value, bool) and value >= 0
     if name in CHOICES:
         return value in CHOICES[name]
     if name == "quiet_hours":

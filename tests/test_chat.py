@@ -482,3 +482,89 @@ def test_an_old_private_day_is_not_checked(window):
     menu = w.build_menu()
     assert not action(menu, "persona:private").isChecked()
     menu.deleteLater()
+
+
+# --- web search in the menu ---------------------------------------------------------------------
+
+
+def test_web_search_is_saved_beside_her_other_knobs(isolated_app_dir):
+    assert prefs.read_search() == "off" and prefs.read_normal_searches() == 10
+    prefs.persona_dir().mkdir(parents=True)
+    prefs.persona_config_path().write_text('{"limit": 300, "searches_per_day": 4}', encoding="utf-8")
+    assert prefs.read_normal_searches() == 4
+    for good in ("normal", "unlimited", 1, prefs.MAX_DAILY_SEARCHES, "off"):
+        assert prefs.write_search(good) and prefs.read_search() == good
+    for bad in (0, prefs.MAX_DAILY_SEARCHES + 1, True, "lots", 2.5, None):
+        assert not prefs.write_search(bad)
+    assert json.loads(prefs.persona_config_path().read_text(encoding="utf-8"))["limit"] == 300
+    prefs.persona_config_path().write_text('{"search": "everything", "searches_per_day": -1}', encoding="utf-8")
+    assert prefs.read_search() == "off" and prefs.read_normal_searches() == 10
+
+
+def test_searches_today_are_read_from_her_spend_file(isolated_app_dir):
+    assert prefs.read_searches_today() == 0
+    write_persona("spend.json", {"date": "2026-10-28", "usd": 0.05, "lines": 4, "searches": 3})
+    assert prefs.read_searches_today(date(2026, 10, 28)) == 3
+    assert prefs.read_searches_today(date(2026, 10, 29)) == 0
+    write_persona("spend.json", {"date": "2026-10-28", "searches": "3"})
+    assert prefs.read_searches_today(date(2026, 10, 28)) == 0
+
+
+@windows_only
+def test_the_web_search_menu_offers_off_normal_unlimited_and_custom_with_costs(window):
+    w = window()
+    changes = []
+    w.search_changed.connect(changes.append)
+    menu = w.build_menu()
+    off, normal, unlimited, custom = (action(menu, f"search:{k}") for k in ("off", "normal", "unlimited", "custom"))
+    assert off.isChecked() and off.parent().title() == "Web search"
+    assert normal.text() == "Normal: 10 searches a day" and "$0.01" in normal.toolTip()
+    assert "high API cost" not in normal.toolTip()
+    for item in (unlimited, custom):
+        assert "might incur high API cost" in item.toolTip() and "Talk to her" in item.toolTip()
+    assert normal.parent().toolTipsVisible()
+    normal.trigger()
+    menu.deleteLater()
+    assert changes == ["normal"] and prefs.read_search() == "normal"
+    menu = w.build_menu()
+    assert action(menu, "search:normal").isChecked() and not action(menu, "search:off").isChecked()
+    assert action(menu, "limit:normal").isChecked(), "her line limit is a choice of its own"
+    menu.deleteLater()
+
+
+@windows_only
+def test_custom_asks_for_searches_a_day_and_cancel_changes_nothing(window):
+    w = window()
+    asked = []
+    w.ask_daily_searches = lambda start: asked.append(start) or None
+    menu = w.build_menu()
+    action(menu, "search:custom").trigger()
+    menu.deleteLater()
+    assert asked == [30] and prefs.read_search() == "off"
+    w.ask_daily_searches = lambda start: asked.append(start) or 75
+    menu = w.build_menu()
+    action(menu, "search:custom").trigger()
+    menu.deleteLater()
+    assert prefs.read_search() == 75
+    menu = w.build_menu()
+    custom = action(menu, "search:custom")
+    assert custom.isChecked() and custom.text() == "Custom: 75 searches a day…"
+    custom.trigger()
+    menu.deleteLater()
+    assert asked[-1] == 75, "the dialog starts from the current number"
+
+
+@windows_only
+def test_the_spend_line_counts_searches_once_search_is_on_or_used(window):
+    from companion.window import spend_text
+
+    window()  # the app's Qt objects exist
+    write_persona("spend.json", {"date": date.today().isoformat(), "usd": 0.0312, "lines": 23, "searches": 2})
+    assert spend_text() == "Today: 23 lines · 2 searches · $0.031 of $0.50", "used today though now off"
+    prefs.write_search("normal")
+    assert spend_text() == "Today: 23 lines · 2 searches of 10 · $0.031 of $0.50"
+    prefs.write_search(40)
+    assert spend_text() == "Today: 23 lines · 2 searches of 40 · $0.031 of $0.50"
+    prefs.write_search("unlimited")
+    prefs.write_limit("unlimited")
+    assert spend_text() == "Today: 23 lines · 2 searches · $0.031"
