@@ -187,6 +187,81 @@
       "frameMs": 42,
       "loop": false
     },
+    "pumpkin": {
+      "dir": "pumpkin",
+      "frameMs": 42,
+      "loop": false
+    },
+    "ghost": {
+      "dir": "ghost",
+      "frameMs": 42,
+      "loop": false
+    },
+    "xmas_tree": {
+      "dir": "xmas_tree",
+      "frameMs": 42,
+      "loop": false
+    },
+    "fireworks": {
+      "dir": "fireworks",
+      "frameMs": 42,
+      "loop": false
+    },
+    "write_fu": {
+      "dir": "write_fu",
+      "frameMs": 42,
+      "loop": false
+    },
+    "red_envelope": {
+      "dir": "red_envelope",
+      "frameMs": 42,
+      "loop": false
+    },
+    "lion_dance": {
+      "dir": "lion_dance",
+      "frameMs": 42,
+      "loop": false
+    },
+    "tangyuan": {
+      "dir": "tangyuan",
+      "frameMs": 42,
+      "loop": false
+    },
+    "qingtuan": {
+      "dir": "qingtuan",
+      "frameMs": 42,
+      "loop": false
+    },
+    "zongzi": {
+      "dir": "zongzi",
+      "frameMs": 42,
+      "loop": false
+    },
+    "qixi": {
+      "dir": "qixi",
+      "frameMs": 42,
+      "loop": false
+    },
+    "mooncake": {
+      "dir": "mooncake",
+      "frameMs": 42,
+      "loop": false
+    },
+    "double_ninth": {
+      "dir": "double_ninth",
+      "frameMs": 42,
+      "loop": false
+    },
+    "dumplings": {
+      "dir": "dumplings",
+      "frameMs": 42,
+      "loop": false
+    },
+    "laba": {
+      "dir": "laba",
+      "frameMs": 42,
+      "loop": false
+    },
     "purse_full": {
       "dir": "purse_full",
       "frameMs": 42,
@@ -361,5 +436,136 @@
       1,
       1
     ]
-  }
+  },
+  "dates": [
+    {
+      "clip": "pumpkin",
+      "on": [
+        "10-31"
+      ]
+    },
+    {
+      "clip": "ghost",
+      "on": [
+        "10-31"
+      ]
+    },
+    {
+      "clip": "xmas_tree",
+      "on": [
+        "12-24",
+        "12-25"
+      ]
+    },
+    {
+      "clip": "fireworks",
+      "on": [
+        "12-31",
+        "01-01",
+        "2027-02-05",
+        "2028-01-25",
+        "2029-02-12",
+        "2030-02-02"
+      ]
+    },
+    {
+      "clip": "write_fu",
+      "on": [
+        "2027-02-05",
+        "2028-01-25",
+        "2029-02-12",
+        "2030-02-02"
+      ]
+    },
+    {
+      "clip": "red_envelope",
+      "on": [
+        "2027-02-06",
+        "2028-01-26",
+        "2029-02-13",
+        "2030-02-03"
+      ]
+    },
+    {
+      "clip": "lion_dance",
+      "on": [
+        "2027-02-06",
+        "2028-01-26",
+        "2029-02-13",
+        "2030-02-03"
+      ]
+    },
+    {
+      "clip": "tangyuan",
+      "on": [
+        "2027-02-20",
+        "2028-02-09",
+        "2029-02-27",
+        "2030-02-17"
+      ]
+    },
+    {
+      "clip": "qingtuan",
+      "on": [
+        "2027-04-05",
+        "2028-04-04",
+        "2029-04-04",
+        "2030-04-05"
+      ]
+    },
+    {
+      "clip": "zongzi",
+      "on": [
+        "2027-06-09",
+        "2028-05-28",
+        "2029-06-16",
+        "2030-06-05"
+      ]
+    },
+    {
+      "clip": "qixi",
+      "on": [
+        "2027-08-08",
+        "2028-08-26",
+        "2029-08-16",
+        "2030-08-05"
+      ]
+    },
+    {
+      "clip": "mooncake",
+      "on": [
+        "2027-09-15",
+        "2028-10-03",
+        "2029-09-22",
+        "2030-09-12"
+      ]
+    },
+    {
+      "clip": "double_ninth",
+      "on": [
+        "2027-10-08",
+        "2028-10-26",
+        "2029-10-16",
+        "2030-10-05"
+      ]
+    },
+    {
+      "clip": "dumplings",
+      "on": [
+        "2026-12-22",
+        "2027-12-22",
+        "2028-12-21",
+        "2029-12-21",
+        "2030-12-22"
+      ]
+    },
+    {
+      "clip": "laba",
+      "on": [
+        "2027-01-15",
+        "2028-01-04",
+        "2029-01-22"
+      ]
+    }
+  ]
 }

@@ -6,7 +6,7 @@ import pytest
 
 from companion.animator import CLICK_COOLDOWN_S, REST_WINDOWS_S, Animator
 from companion.model import State
-from companion.skin import Clip, Skin, Timed, Zone
+from companion.skin import Clip, DateClip, Skin, Timed, Zone
 
 STEP = 0.1  # every test clip runs 100 ms per frame
 
@@ -540,3 +540,52 @@ def test_a_usage_clip_waits_while_she_works():
     assert idle_now(anim, 1.5) == "mid", "her next idle moment is the purse's"
     anim.set_usage(None, 2.0)
     assert anim.usage_tier == 1, "no report changes nothing"
+
+
+# --- festivals by date --------------------------------------------------------------------------
+
+
+def festive(at):
+    """rich_skin with a Halloween pumpkin every year and a lion dance on one Spring Festival."""
+    base = rich_skin()
+    extra = [clip("pumpkin", loop=False), clip("lion", loop=False)]
+    skin = Skin(
+        "festive", Path("."), (100, 100), {**base.clips, **{c.name: c for c in extra}}, base.states, base.reactions,
+        base.idle, base.zones, timed=base.timed,
+        dates=(DateClip("pumpkin", every_year=frozenset({"10-31"})), DateClip("lion", once=frozenset({"2027-02-06"}))),
+    )  # fmt: skip
+    clock = {"at": at}
+    anim = Animator(skin, 0.0, rng=random.Random(7), local_now=lambda: clock["at"])
+    anim.wall = clock
+    return anim
+
+
+def test_a_festival_clip_plays_once_on_its_day():
+    anim = festive(datetime(2026, 10, 31, 15, 0))
+    assert idle_now(anim, 0.0) == "pumpkin"
+    anim.frame(1.0)
+    assert idle_now(anim, 1.0) == "blink", "once is enough"
+    anim.frame(2.0)
+    anim.wall["at"] = datetime(2026, 11, 1, 15, 0)
+    assert idle_now(anim, 2.0) == "blink", "the day after, nothing"
+    anim.frame(3.0)
+    anim.wall["at"] = datetime(2027, 10, 31, 9, 0)
+    assert idle_now(anim, 3.0) == "pumpkin", "and again next year"
+
+
+def test_a_one_day_festival_plays_only_that_year():
+    anim = festive(datetime(2027, 2, 6, 10, 0))
+    assert idle_now(anim, 0.0) == "lion"
+    anim.frame(1.0)
+    anim.wall["at"] = datetime(2028, 2, 6, 10, 0)
+    assert idle_now(anim, 1.0) == "blink"
+
+
+def test_a_festival_comes_before_breakfast_and_after_a_due_purse():
+    anim = festive(datetime(2026, 10, 31, 8, 0))
+    anim.usage_due = "mid"
+    assert idle_now(anim, 0.0) == "mid"
+    anim.frame(1.0)
+    assert idle_now(anim, 1.0) == "pumpkin"
+    anim.frame(2.0)
+    assert idle_now(anim, 2.0) == "meal"

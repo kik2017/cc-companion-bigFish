@@ -21,7 +21,7 @@
 - **显示 Claude Code 的状态：**思考、读取与查找、编辑文件、执行命令、委派子 Agent、等你确认、完成、出错和压缩上下文。
 - **状态气泡：**项目、模型、推理强度、子 Agent、任务进度、上下文占用，以及 5 小时和 7 天的用量。
 - **和你互动：**拖到任何地方、摸摸头、戳一戳、碰碰尾巴，每种都有几种反应随机出现；她小睡时还能把她点醒。
-- **过好每一天：**40 多段动画，从哼歌、伸懒腰到早餐、午餐、晚餐和午睡，还有随着你 5 小时用量变空的钱袋。
+- **过好每一天：**55 段以上的动画，从哼歌、伸懒腰到早餐、午餐、晚餐和午睡，从万圣节到春节的各种节日，还有随着你 5 小时用量变空的钱袋。
 - **开口说话（可选）：**用你自己的 Anthropic API Key，她会在值得一提的时刻说上一句、在你找她聊天时回答（你允许的话还能上网查），每晚还会睡觉：写日记、整理对你的了解，偶尔做个梦。
 
 ## 她的动作
@@ -105,6 +105,35 @@
 </tr>
 </table>
 
+**节日里**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/pumpkin.webp" width="190" alt="Trick-or-treating with a pumpkin lantern"><br><sub>万圣节</sub></td>
+<td align="center"><img src="docs/images/anim/ghost.webp" width="190" alt="A cute little ghost"><br><sub>万圣节</sub></td>
+<td align="center"><img src="docs/images/anim/xmas_tree.webp" width="190" alt="Decorating the Christmas tree"><br><sub>平安夜和圣诞节</sub></td>
+<td align="center"><img src="docs/images/anim/fireworks.webp" width="190" alt="Fireworks"><br><sub>跨年 · 除夕</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/write_fu.webp" width="190" alt="Writing the character 福"><br><sub>除夕</sub></td>
+<td align="center"><img src="docs/images/anim/red_envelope.webp" width="190" alt="A red envelope"><br><sub>春节</sub></td>
+<td align="center"><img src="docs/images/anim/lion_dance.webp" width="190" alt="A lion dance"><br><sub>春节</sub></td>
+<td align="center"><img src="docs/images/anim/tangyuan.webp" width="190" alt="Eating tangyuan"><br><sub>元宵节</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/qingtuan.webp" width="190" alt="Eating qingtuan"><br><sub>清明</sub></td>
+<td align="center"><img src="docs/images/anim/zongzi.webp" width="190" alt="Eating zongzi"><br><sub>端午节</sub></td>
+<td align="center"><img src="docs/images/anim/qixi.webp" width="190" alt="Threading a needle"><br><sub>七夕</sub></td>
+<td align="center"><img src="docs/images/anim/mooncake.webp" width="190" alt="Mooncakes under the moon"><br><sub>中秋节</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/double_ninth.webp" width="190" alt="Double Ninth cake"><br><sub>重阳节</sub></td>
+<td align="center"><img src="docs/images/anim/dumplings.webp" width="190" alt="Eating dumplings"><br><sub>冬至</sub></td>
+<td align="center"><img src="docs/images/anim/laba.webp" width="190" alt="Laba porridge"><br><sub>腊八节</sub></td>
+<td></td>
+</tr>
+</table>
+
 **你的 5 小时用量**
 
 <table>
@@ -120,7 +149,7 @@
 </tr>
 </table>
 
-**每次碰她，都会随机选一种反应**；Claude Code 工作时，她也会在同一种状态的几段动画之间切换。按时间，她早上刷牙（6:30-8:00）、吃早餐（7:30-9:30）、午餐（11:30-13:30）、午睡（13:30-15:00）、晚餐（17:30-19:30），深夜会打瞌睡：每样一天一次，在那段时间里她第一次闲下来时。她小睡时点她，她会被吓醒。你的 5 小时用量每升一档，她会把钱袋给你看一次。
+**每次碰她，都会随机选一种反应**；Claude Code 工作时，她也会在同一种状态的几段动画之间切换。按时间，她早上刷牙（6:30-8:00）、吃早餐（7:30-9:30）、午餐（11:30-13:30）、午睡（13:30-15:00）、晚餐（17:30-19:30），深夜会打瞌睡：每样一天一次，在那段时间里她第一次闲下来时。她小睡时点她，她会被吓醒。节日那天，她会在第一次闲下来时过一次节；农历节日的日期列到了 2030 年。你的 5 小时用量每升一档，她会把钱袋给你看一次。
 
 开启她的声音后，她说话时会有说话的动作，向你问好时会行屈膝礼或挥手，睡觉时会打盹。其中一些动作也代表她的心情：开心（开心跃动）、得意（完成）、担心（叹气）、困了（打哈欠）、好奇（东张西望）。预览为 36% 大小、每秒 8 帧；在桌面上她是原尺寸、每秒 24 帧。
 
@@ -234,7 +263,8 @@
 
 ## 更新日志
 
-**2026-10-30**
+**2026-10-30（0.3.0）**
+- **节日：**万圣节、圣诞节、新年、春节（还有除夕）、元宵、端午、七夕、中秋、重阳、腊八、清明和冬至，她都会在当天过一次。
 - 她的文件搬到了 `文档\cc-companion`，方便查找和备份。第一次启动时会把旧文件夹复制过来，旧的保留不动。
 - 修复：在 Claude 桌面应用里使用 Claude Code 时，**Open her folder** 打开了错误的文件夹。
 - 你允许的话，她能上网查了。打开 **Persona → Web search**（普通档每天 10 次，也可以选不限或自定次数），你在聊天框里问她时，她可能会搜索后再回答。搜索次数会显示在 Today 那一行，并计入每天的上限。

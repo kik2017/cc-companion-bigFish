@@ -37,6 +37,9 @@ Optional, for the persona and the clock:
     usage       [clip, ...] from plenty to none, for the 5-hour quota: the last is for 100%
                 used and the others split 0-100% evenly; when the quota climbs into a new
                 tier its clip plays once, at her next idle moment
+    dates       [{"clip": clip, "on": ["MM-DD" | "YYYY-MM-DD", ...]}, ...] festival clips: each
+                plays once on each of its days, at her first idle moment; MM-DD is that day
+                every year, YYYY-MM-DD one day only (for festivals that move, like the lunar ones)
 
 The repo ships one pack, the bundled character in companion/assets/character (CC BY-NC-SA 4.0
 art, non-commercial, with its LICENSE.txt and SOURCE.md). Other packs live under the app data skins/ folder
@@ -48,6 +51,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from pathlib import Path
 
 from . import settings as prefs
@@ -104,6 +108,16 @@ class Timed:
 
 
 @dataclass(frozen=True)
+class DateClip:
+    clip: str
+    every_year: frozenset[str] = frozenset()  # MM-DD
+    once: frozenset[str] = frozenset()  # YYYY-MM-DD
+
+    def on(self, day: date) -> bool:
+        return day.strftime("%m-%d") in self.every_year or day.isoformat() in self.once
+
+
+@dataclass(frozen=True)
 class Skin:
     name: str
     root: Path
@@ -121,6 +135,7 @@ class Skin:
     wake: str | None = None
     timed: tuple[Timed, ...] = ()
     usage: tuple[str, ...] = ()
+    dates: tuple[DateClip, ...] = ()
 
     def __post_init__(self) -> None:
         # A state or reaction may be given as one clip name; it is kept as a tuple of one.
@@ -211,6 +226,18 @@ def _time(value: object, where: str) -> int:
     return int(value[:2]) * 60 + int(value[3:])
 
 
+def _day(value: object, where: str) -> tuple[str, bool]:
+    """A day as (text, every year): "MM-DD" for every year, "YYYY-MM-DD" for one day."""
+    if isinstance(value, str) and len(value) in (5, 10):
+        every_year = len(value) == 5
+        try:
+            datetime.strptime(f"2000-{value}" if every_year else value, "%Y-%m-%d")  # 2000 was a leap year: 02-29 counts
+            return value, every_year
+        except ValueError:
+            pass
+    raise SkinError(f"{where} must be a day as MM-DD or YYYY-MM-DD")
+
+
 def load_skin(root: Path) -> Skin:
     root = Path(root).resolve()
     try:
@@ -293,6 +320,17 @@ def load_skin(root: Path) -> Skin:
     _require(isinstance(raw_usage, list), "usage must be a list")
     usage = tuple(clip_ref(name, "usage") for name in raw_usage)
 
+    raw_dates = manifest.get("dates", [])
+    _require(isinstance(raw_dates, list), "dates must be a list")
+    dates = []
+    for i, entry in enumerate(raw_dates):
+        _require(isinstance(entry, dict) and isinstance(entry.get("on"), list) and entry["on"], f"dates[{i}] must be {{\"clip\": clip, \"on\": [day, ...]}}")
+        days = [_day(value, f"dates[{i}].on") for value in entry["on"]]
+        dates.append(DateClip(
+            clip_ref(entry.get("clip"), f"dates[{i}].clip"),
+            frozenset(d for d, every in days if every), frozenset(d for d, every in days if not every),
+        ))  # fmt: skip
+
     # A looping reaction, idle, mood or persona clip would never hand back to the state clip.
     for where, name in [
         *((f"reactions.{r}", c) for r in REACTIONS if r != "drag" for c in reactions[r]),
@@ -303,6 +341,7 @@ def load_skin(root: Path) -> Skin:
         *(("wake.clip", c) for c in ([wake] if wake else [])),
         *(("timed", entry.clip) for entry in timed),
         *(("usage", c) for c in usage),
+        *(("dates", entry.clip) for entry in dates),
     ]:
         _require(not clips[name].loop, f"{where} clip {name!r} must not loop")
     for name in reactions["drag"]:
@@ -321,7 +360,7 @@ def load_skin(root: Path) -> Skin:
     name = manifest.get("name") if isinstance(manifest.get("name"), str) else root.name
     return Skin(
         name, root, (size[0], size[1]), clips, states, reactions, idle, zones, license_path, moods,
-        talk, cues, wake_during, wake, tuple(timed), usage,
+        talk, cues, wake_during, wake, tuple(timed), usage, tuple(dates),
     )  # fmt: skip
 
 

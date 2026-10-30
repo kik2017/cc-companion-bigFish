@@ -3,9 +3,9 @@
 Three tiers, highest first:
   reaction  a click on the head, body or tail, a drag (hover loop) or the landing after it,
             or a gesture: her talking clip or a cue (greet, sleep) from the persona
-  idle      after a rest window: a usage clip that is due, else a time-of-day clip not yet
-            played in its window today, else a random idle clip; or a persona mood clip,
-            only while the state is idle
+  idle      after a rest window: a usage clip that is due, else today's festival clip not
+            yet played, else a time-of-day clip not yet played in its window today, else a
+            random idle clip; or a persona mood clip, only while the state is idle
   state     a clip mapped to the display state; with several, one is picked when the
             state starts and a looping one may change at the end of each pass
 
@@ -74,6 +74,7 @@ class Animator:
         self.last_idle: str | None = None
         self.idle_due: float | None = None
         self.timed_played: set[tuple[str, int, int]] = set()  # (clip, window start, window day)
+        self.dates_played: set[tuple[str, int]] = set()  # (clip, day)
         self.usage_tier: int | None = None
         self.usage_due: str | None = None
         self.base = self._pick(skin.state_clips(self.state))  # this state's clip, among its variants
@@ -277,11 +278,16 @@ class Animator:
         self.started = ended
 
     def _next_idle(self) -> str | None:
-        """A usage clip that is due, else a time-of-day clip not yet played in its window, else a random idle clip."""
+        """A usage clip that is due, else today's festival, else a time-of-day clip not yet played in its window, else a random one."""
         if self.usage_due is not None:
             name, self.usage_due = self.usage_due, None
             return name
         local = self.local_now()
+        today = local.date().toordinal()
+        for entry in self.skin.dates:
+            if entry.on(local.date()) and (entry.clip, today) not in self.dates_played:
+                self.dates_played = {k for k in self.dates_played if k[1] >= today - 1} | {(entry.clip, today)}
+                return entry.clip
         minute = local.hour * 60 + local.minute
         for entry in self.skin.timed:
             if entry.contains(minute):
@@ -313,7 +319,7 @@ class Animator:
         return not self.clip.loop and now - self.started >= self.clip.duration_s
 
     def _schedule_idle(self, now: float) -> None:
-        has_idle = self.skin.idle or self.skin.timed or self.usage_due is not None
+        has_idle = self.skin.idle or self.skin.timed or self.skin.dates or self.usage_due is not None
         if self.state is State.IDLE and has_idle and not self.reduced_motion and self.idle_clip is None:
             low, high = REST_WINDOWS_S.get(self.activity, REST_WINDOWS_S["normal"])
             self.idle_due = now + self.rng.uniform(low, high)

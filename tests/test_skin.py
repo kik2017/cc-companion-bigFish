@@ -118,11 +118,12 @@ def test_the_bundled_character_loads_with_its_license_and_source():
     assert set(skin.states) == set(State)
     assert set(skin.reactions) == set(skins.REACTIONS)
     assert skin.frame_size == (528, 360)
-    assert len({clip.frames[0].parent for clip in skin.clips.values()}) == 42
-    assert sum(len(clip.frames) for name, clip in skin.clips.items() if not name.endswith("_once")) == 9710
+    assert len({clip.frames[0].parent for clip in skin.clips.values()}) == 57
+    assert sum(len(clip.frames) for name, clip in skin.clips.items() if not name.endswith("_once")) == 13325
     assert len(skin.talk) == 3 and set(skin.cues) == set(skins.CUES) and skin.wake == "startled"
     assert len(skin.usage) == 6 and {t.clip for t in skin.timed} >= {"breakfast", "lunch", "dinner", "nap"}
     assert all(len(skin.reactions[zone]) >= 2 for zone in ("head", "body", "tail"))
+    assert len(skin.dates) == 15 and {"pumpkin", "red_envelope", "mooncake"} <= {d.clip for d in skin.dates}
     license_text = skin.license.read_text(encoding="utf-8")
     # Must ship with the frames: the art terms and every credit, and never an MIT claim for the art.
     for part in ("CC BY-NC-SA 4.0", "NOT covered by the MIT license", "https://github.com/PC2005-cloud/dsh-pet", "ZipZipPipe", "上善无形"):
@@ -228,3 +229,33 @@ def test_every_drag_clip_must_loop(pack):
     reactions = {**pack.manifest["reactions"], "drag": ["drag", "land"]}
     with pytest.raises(skins.SkinError, match="must loop"):
         skins.load_skin(pack(reactions=reactions))
+
+
+def test_dates_load_as_every_year_or_one_day(pack):
+    from datetime import date
+
+    skin = skins.load_skin(pack(dates=[
+        {"clip": "idle_hop", "on": ["10-31", "2027-02-06"]}, {"clip": "idle_blink", "on": ["02-29"]},
+    ]))  # fmt: skip
+    hop, leap = skin.dates
+    assert hop.every_year == {"10-31"} and hop.once == {"2027-02-06"}
+    assert hop.on(date(2026, 10, 31)) and hop.on(date(2027, 2, 6)) and not hop.on(date(2028, 2, 6))
+    assert leap.on(date(2028, 2, 29)) and not leap.on(date(2027, 3, 1))
+
+
+@pytest.mark.parametrize(
+    "dates, message",
+    [
+        ("10-31", "dates must be a list"),
+        ([{"clip": "idle_hop"}], r"dates\[0\] must be"),
+        ([{"clip": "idle_hop", "on": []}], r"dates\[0\] must be"),
+        ([{"clip": "idle_hop", "on": ["13-01"]}], "MM-DD or YYYY-MM-DD"),
+        ([{"clip": "idle_hop", "on": ["2027-2-6"]}], "MM-DD or YYYY-MM-DD"),
+        ([{"clip": "idle_hop", "on": ["2027-02-30"]}], "MM-DD or YYYY-MM-DD"),
+        ([{"clip": "nope", "on": ["10-31"]}], "unknown clip"),
+        ([{"clip": "idle", "on": ["10-31"]}], "must not loop"),
+    ],
+)
+def test_bad_dates_are_rejected_with_a_reason(pack, dates, message):
+    with pytest.raises(skins.SkinError, match=message):
+        skins.load_skin(pack(dates=dates))

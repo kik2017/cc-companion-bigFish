@@ -21,7 +21,7 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 - **Shows Claude Code's state:** thinking, reading and searching, editing files, running a command, delegating to subagents, waiting for you, done, errors and compacting.
 - **A status bubble** with the project, model, reasoning effort, subagents, task progress, how full the context is, and your 5-hour and 7-day usage.
 - **Reacts to you:** drag her anywhere, pat her head, poke her, touch her tail, each with a few reactions she picks from; wake her from a nap.
-- **Lives through the day:** over 40 animations, from humming and stretching to breakfast, lunch, dinner and a nap after lunch, and a purse that empties as your 5-hour usage climbs.
+- **Lives through the day:** over 55 animations, from humming and stretching to breakfast, lunch, dinner and a nap after lunch, festivals from Halloween to the Spring Festival, and a purse that empties as your 5-hour usage climbs.
 - **Can talk (optional):** with your own Anthropic API key she says short lines at moments that matter, answers when you chat with her (and can look things up on the web, if you let her), and sleeps each night: she writes a diary, sorts out what she has learned about you, and sometimes dreams.
 
 ## See her move
@@ -105,6 +105,35 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 </tr>
 </table>
 
+**On festivals**
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/anim/pumpkin.webp" width="190" alt="Trick-or-treating with a pumpkin lantern"><br><sub>Halloween</sub></td>
+<td align="center"><img src="docs/images/anim/ghost.webp" width="190" alt="A cute little ghost"><br><sub>Halloween</sub></td>
+<td align="center"><img src="docs/images/anim/xmas_tree.webp" width="190" alt="Decorating the Christmas tree"><br><sub>Christmas Eve and Day</sub></td>
+<td align="center"><img src="docs/images/anim/fireworks.webp" width="190" alt="Fireworks"><br><sub>New Year · Spring Festival Eve</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/write_fu.webp" width="190" alt="Writing the character 福"><br><sub>Spring Festival Eve</sub></td>
+<td align="center"><img src="docs/images/anim/red_envelope.webp" width="190" alt="A red envelope"><br><sub>Spring Festival</sub></td>
+<td align="center"><img src="docs/images/anim/lion_dance.webp" width="190" alt="A lion dance"><br><sub>Spring Festival</sub></td>
+<td align="center"><img src="docs/images/anim/tangyuan.webp" width="190" alt="Eating tangyuan"><br><sub>Lantern Festival</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/qingtuan.webp" width="190" alt="Eating qingtuan"><br><sub>Qingming</sub></td>
+<td align="center"><img src="docs/images/anim/zongzi.webp" width="190" alt="Eating zongzi"><br><sub>Dragon Boat Festival</sub></td>
+<td align="center"><img src="docs/images/anim/qixi.webp" width="190" alt="Threading a needle"><br><sub>Qixi</sub></td>
+<td align="center"><img src="docs/images/anim/mooncake.webp" width="190" alt="Mooncakes under the moon"><br><sub>Mid-Autumn Festival</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/anim/double_ninth.webp" width="190" alt="Double Ninth cake"><br><sub>Double Ninth Festival</sub></td>
+<td align="center"><img src="docs/images/anim/dumplings.webp" width="190" alt="Eating dumplings"><br><sub>Winter solstice</sub></td>
+<td align="center"><img src="docs/images/anim/laba.webp" width="190" alt="Laba porridge"><br><sub>Laba Festival</sub></td>
+<td></td>
+</tr>
+</table>
+
 **Your 5-hour usage**
 
 <table>
@@ -120,7 +149,7 @@ She sits in a corner of your screen, above your other windows, and shows what Cl
 </tr>
 </table>
 
-**Each touch picks one of her reactions at random**, and while Claude Code works she switches between the clips for what it is doing. By the clock she brushes her teeth in the morning (6:30-8:00), has breakfast (7:30-9:30), lunch (11:30-13:30), a nap after lunch (13:30-15:00) and dinner (17:30-19:30), and dozes off late at night: each once a day, at her first idle moment in it. Click her while she naps and she wakes with a start. Each time your 5-hour usage climbs into a new step, she shows you her purse once.
+**Each touch picks one of her reactions at random**, and while Claude Code works she switches between the clips for what it is doing. By the clock she brushes her teeth in the morning (6:30-8:00), has breakfast (7:30-9:30), lunch (11:30-13:30), a nap after lunch (13:30-15:00) and dinner (17:30-19:30), and dozes off late at night: each once a day, at her first idle moment in it. Click her while she naps and she wakes with a start. On a festival she celebrates once, at her first idle moment that day; the lunar festivals' days are listed through 2030. Each time your 5-hour usage climbs into a new step, she shows you her purse once.
 
 With her voice on she talks while she says a line, curtsies or waves when she greets you, and naps when she goes to sleep. Some clips also show her mood: happy (a happy hop), proud (done), worried (sighing), sleepy (a yawn) and curious (looking around). Previews are shown at 36% size and 8 fps; on your desktop she moves at full size and 24 fps.
 
@@ -234,7 +263,8 @@ The source is here under the MIT license. A developer guide is coming. Until the
 
 ## Changelog
 
-**2026-10-30**
+**2026-10-30 (0.3.0)**
+- **Festivals:** she celebrates Halloween, Christmas, New Year, the Spring Festival (its eve too), the Lantern, Dragon Boat, Qixi, Mid-Autumn, Double Ninth and Laba festivals, Qingming and the winter solstice, each once on its day.
 - Her files moved to `Documents\cc-companion`, where you can find and back them up. The first start copies the old folder over and keeps it.
 - Fixed: **Open her folder** opened the wrong folder when Claude Code ran in the Claude desktop app.
 - She can look things up on the web, if you let her. Turn on **Persona → Web search** (Normal: 10 searches a day; Unlimited or your own number too), and she may search to answer what you ask in the chat box. Searches show in the Today line and count toward her daily limit.
