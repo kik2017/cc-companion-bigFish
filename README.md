@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/cover_zh.webp" width="640" alt="鲸尾女仆坐在夕阳下海边的栈桥上，上方写着 cc-companion，陪你用 Claude Code 的桌面小伙伴">
+
 # cc-companion 🐾
 
 **住在桌面上的小伙伴，在你用 Claude Code 工作时陪着你。**
@@ -294,3 +296,5 @@
 自带的鲸尾女仆动画来自 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet)。角色设计为 B 站 @ZipZipPipe，原型是 B 站 @上善无形 的原创角色溟月。这是社区同人创作，不是任何公司的官方角色。感谢他们。
 
 **角色素材不是 MIT 授权。**它以 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans) 共享：仅限非商业使用、需署名、相同方式共享。条款与署名见 [`companion/assets/character/LICENSE.txt`](companion/assets/character/LICENSE.txt)，它会随素材一起分发。代码以 [MIT 授权](LICENSE)发布，Copyright © 2026 kik2017。如需商业使用，请先替换自带角色。
+
+本页顶部的封面图（`docs/images/cover.webp` 和 `cover_zh.webp`）由本项目作者根据鲸尾女仆这个角色生成。它是这个角色的二次创作，因此同样以 CC BY-NC-SA 4.0 授权共享，仅限非商业用途，并保留上面的署名。
