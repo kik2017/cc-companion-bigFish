@@ -619,3 +619,45 @@ def test_the_display_feeds_her_usage(app, window, tmp_path):
     assert w.animator.usage_tier == 0
     w.set_display(DisplayState(sessions=1, session_id="s1", quota=Quota(five_hour_pct=60.0)))
     assert w.animator.usage_tier == 1 and w.animator.idle_clip == "tail"
+
+
+# --- open her folder where it really is --------------------------------------------------------
+
+
+class FakeExplorer:
+    """Stands in for QProcess in reveal(), so no Explorer window opens."""
+
+    started: list = []
+
+    def setProgram(self, program):
+        self.program = program
+
+    def setNativeArguments(self, arguments):
+        self.arguments = arguments
+
+    def startDetached(self):
+        FakeExplorer.started.append((self.program, self.arguments))
+        return True
+
+
+def test_reveal_hands_explorer_the_real_folder_not_a_redirected_one(tmp_path, monkeypatch):
+    """A packaged app sees AppData through a redirect Explorer cannot follow; a junction stands in for it."""
+    import _winapi
+
+    real = tmp_path / "store" / "persona"
+    real.mkdir(parents=True)
+    (real / "identity.md").write_text("x", encoding="utf-8")
+    _winapi.CreateJunction(str(tmp_path / "store"), str(tmp_path / "seen"))
+    FakeExplorer.started = []
+    monkeypatch.setattr(windows, "QProcess", FakeExplorer)
+    assert windows.reveal(tmp_path / "seen" / "persona")
+    ((program, arguments),) = FakeExplorer.started
+    assert program == "explorer.exe"
+    assert arguments == f'/select,"{real.resolve() / "identity.md"}"' and "seen" not in arguments
+
+
+def test_reveal_opens_a_folder_without_her_identity_as_the_folder(tmp_path, monkeypatch):
+    FakeExplorer.started = []
+    monkeypatch.setattr(windows, "QProcess", FakeExplorer)
+    assert windows.reveal(tmp_path)
+    assert FakeExplorer.started == [("explorer.exe", f'"{tmp_path.resolve()}"')]

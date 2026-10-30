@@ -94,10 +94,17 @@ _first_paint_logged = False
 def reveal(folder: Path) -> bool:
     """Show `folder` in the file manager, in front.
 
+    The folder is resolved to where it really is first. Inside a packaged Windows app (the
+    Claude desktop app is one, and Claude Code's hooks start the pet from it), Windows
+    redirects AppData to the package's own store, which only processes in the package see
+    at the usual path; Explorer is outside it and would open the nearest folder that does
+    exist (AppData\\Local) instead.
+
     On Windows, Explorer is started on it with /select on her identity.md: handing a
     folder URL to the shell can just raise an Explorer window that is already open on
     some other folder. Elsewhere, or if that fails, the desktop's URL handler opens it.
     """
+    folder = folder.resolve()
     if sys.platform == "win32":
         target = folder / "identity.md"
         native = QDir.toNativeSeparators(str(target if target.exists() else folder))

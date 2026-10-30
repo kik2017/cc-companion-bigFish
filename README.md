@@ -199,7 +199,7 @@
 - **她说话时**，只把这些标签（Claude Code 在做什么、时间、计数、项目文件夹名）和你在聊天框里打给她的话发给 Anthropic。她看不到你的代码、提示词或 Claude 的回复。
 - **打开联网搜索后**，你在聊天框里打的话可能会变成搜索词。搜索由 Anthropic 的网页搜索工具在同一次请求里完成，程序本身仍然只和 Anthropic 通信。搜索结果从不写进日志或保存，只保留她的回答，和普通聊天回复一样。
 - **判断你在不在电脑前时**，她只读取你上次使用键盘或鼠标是多久以前，从不读取你打了什么字或点了哪里。
-- **她的记忆是普通文件**，保存在你电脑上的 `%LOCALAPPDATA%\cc-companion\persona\`。你可以查看、修改或删除。
+- **她的记忆是普通文件**，保存在你电脑上的 `%LOCALAPPDATA%\cc-companion\persona\`。你可以查看、修改或删除。如果你在 Claude 桌面应用里用 Claude Code，Windows 会把她的文件放在这个应用自己的存储里，位于 `%LOCALAPPDATA%\Packages\Claude_…\LocalCache\Local\cc-companion\`；用 **Persona → Open her folder** 总能打开正确的位置。
 - **你的 API Key** 只保存为你的 Windows 用户环境变量 `CC_COMPANION_API_KEY`，程序从不把它写进文件或日志。
 - **连接 Claude Code** 只在 `~/.claude/settings.json` 中加入她自己的条目，其余内容不动，并会先备份。她的 hooks 只观察，从不批准、拒绝或修改 Claude 的任何操作。
 
@@ -222,7 +222,7 @@
 - **她不说话。**确认 **Persona** 是 **On**、已设置 API Key，再看 Persona 菜单里的 **Today** 一行：超过限额后她只做心情动作。午夜到早上 7 点她会保持安静，深夜陪伴、摸头和聊天除外。
 - **每件事都发生两次。**她被连接了两次，比如这个版本加上源码安装。断开其中一个。
 
-日志在 `%LOCALAPPDATA%\cc-companion`（`companion.log`、`mind.log`），只记录事件名、耗时和花费，从不记录你们的对话或她说的话，求助时可以直接分享。
+日志在 `%LOCALAPPDATA%\cc-companion`（`companion.log`、`mind.log`），或在上面“隐私”里说的 Claude 桌面应用存储中（**Open her folder** 打开的就是它旁边的文件夹），只记录事件名、耗时和花费，从不记录你们的对话或她说的话，求助时可以直接分享。
 
 ## 换成你自己的角色
 

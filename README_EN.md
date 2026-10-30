@@ -199,7 +199,7 @@ The status line needs a folder path without spaces or symbols. If yours has them
 - **When she talks**, she sends Anthropic only those labels (what Claude Code is doing, times, counts, project folder names) and anything you type to her in the chat box. She never sees your code, prompts or Claude's replies.
 - **With web search on**, what you type in the chat box can become a search query. The search runs at Anthropic, through Anthropic's web search tool, as part of the same request; the app itself still talks only to Anthropic. The search results are never logged or saved; only her answer is kept, like any chat reply.
 - **To know whether you are at your desk**, she reads only how long it has been since you last used the keyboard or mouse: never what you typed or where you clicked.
-- **Her memories are plain files** in `%LOCALAPPDATA%\cc-companion\persona\`, on your computer only. Read them, edit them, or delete them.
+- **Her memories are plain files** in `%LOCALAPPDATA%\cc-companion\persona\`, on your computer only. Read them, edit them, or delete them. If Claude Code runs in the Claude desktop app, Windows keeps her files in that app's own storage instead, under `%LOCALAPPDATA%\Packages\Claude_…\LocalCache\Local\cc-companion\`; **Persona → Open her folder** always takes you to the right place.
 - **Your API key** is stored only as your Windows user environment variable `CC_COMPANION_API_KEY`. The app never writes it to a file or a log.
 - **Connect to Claude Code** adds only her own entries to `~/.claude/settings.json`, keeps everything else, and saves a backup first. Her hooks only watch: they never approve, block or change anything Claude does.
 
@@ -222,7 +222,7 @@ The status line needs a folder path without spaces or symbols. If yours has them
 - **She doesn't talk.** Check that **Persona** is **On**, that an API key is set, and the **Today** line in the Persona menu: past her limit she only shows moods. Between midnight and 7 am she keeps quiet except for late-night company, pats and chat.
 - **Everything happens twice.** She is connected twice, for example from this build and from a source install. Disconnect one of them.
 
-Her logs are in `%LOCALAPPDATA%\cc-companion` (`companion.log`, `mind.log`). They contain event names, timings and costs, never your conversations or what she says, so you can share them when asking for help.
+Her logs are in `%LOCALAPPDATA%\cc-companion` (`companion.log`, `mind.log`), or in the Claude desktop app's storage as described under Privacy; **Open her folder** opens the folder next to them. They contain event names, timings and costs, never your conversations or what she says, so you can share them when asking for help.
 
 ## Your own character
 
