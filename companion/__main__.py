@@ -239,6 +239,9 @@ def main(argv: list[str] | None = None) -> int:
     except OSError:
         log.info("port %d already in use; another companion is running", port)
         return 0
+    if prefs.copied_from is not None:
+        log.info("copied the app folder from %s", prefs.copied_from)
+    log.info("app folder %s", prefs.app_dir())
 
     app = QApplication(sys.argv if argv is None else argv)
     app.setApplicationName(prefs.APP_NAME)

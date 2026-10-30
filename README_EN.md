@@ -199,7 +199,7 @@ The status line needs a folder path without spaces or symbols. If yours has them
 - **When she talks**, she sends Anthropic only those labels (what Claude Code is doing, times, counts, project folder names) and anything you type to her in the chat box. She never sees your code, prompts or Claude's replies.
 - **With web search on**, what you type in the chat box can become a search query. The search runs at Anthropic, through Anthropic's web search tool, as part of the same request; the app itself still talks only to Anthropic. The search results are never logged or saved; only her answer is kept, like any chat reply.
 - **To know whether you are at your desk**, she reads only how long it has been since you last used the keyboard or mouse: never what you typed or where you clicked.
-- **Her memories are plain files** in `%LOCALAPPDATA%\cc-companion\persona\`, on your computer only. Read them, edit them, or delete them. If Claude Code runs in the Claude desktop app, Windows keeps her files in that app's own storage instead, under `%LOCALAPPDATA%\Packages\Claude_…\LocalCache\Local\cc-companion\`; **Persona → Open her folder** always takes you to the right place.
+- **Her memories are plain files** in `Documents\cc-companion\persona\`, on your computer only. Read them, edit them, back them up, or delete them. If your Documents folder syncs with OneDrive, they sync too. Versions before 2026-10-30 kept everything in `%LOCALAPPDATA%\cc-companion` (with the Claude desktop app, inside that app's own storage); the first start of a newer version copies it over and leaves the old folder, which you can then delete.
 - **Your API key** is stored only as your Windows user environment variable `CC_COMPANION_API_KEY`. The app never writes it to a file or a log.
 - **Connect to Claude Code** adds only her own entries to `~/.claude/settings.json`, keeps everything else, and saves a backup first. Her hooks only watch: they never approve, block or change anything Claude does.
 
@@ -211,7 +211,7 @@ The status line needs a folder path without spaces or symbols. If yours has them
 
 1. Right-click the tray icon and click **Connected to Claude Code** to disconnect.
 2. Choose **Quit**, then delete the folder.
-3. To also remove her settings and memories, delete `%LOCALAPPDATA%\cc-companion`.
+3. To also remove her settings and memories, delete `Documents\cc-companion` (and `%LOCALAPPDATA%\cc-companion`, if an older version left one).
 4. To remove the API key, run `reg delete HKCU\Environment /v CC_COMPANION_API_KEY /f` in a terminal.
 
 ## If something is off
@@ -222,11 +222,11 @@ The status line needs a folder path without spaces or symbols. If yours has them
 - **She doesn't talk.** Check that **Persona** is **On**, that an API key is set, and the **Today** line in the Persona menu: past her limit she only shows moods. Between midnight and 7 am she keeps quiet except for late-night company, pats and chat.
 - **Everything happens twice.** She is connected twice, for example from this build and from a source install. Disconnect one of them.
 
-Her logs are in `%LOCALAPPDATA%\cc-companion` (`companion.log`, `mind.log`), or in the Claude desktop app's storage as described under Privacy; **Open her folder** opens the folder next to them. They contain event names, timings and costs, never your conversations or what she says, so you can share them when asking for help.
+Her logs are in `Documents\cc-companion` (`companion.log`, `mind.log`). They contain event names, timings and costs, never your conversations or what she says, so you can share them when asking for help.
 
 ## Your own character
 
-The whale-tail maid is used unless you choose a skin pack. A skin pack is a folder with a `manifest.json`, one folder of PNG or WebP frames per animation, and the art's license, placed in `%LOCALAPPDATA%\cc-companion\skins\<name>\`. Then set `"skin": "<name>"` in `%LOCALAPPDATA%\cc-companion\settings.json`. Please respect the license of any art you use.
+The whale-tail maid is used unless you choose a skin pack. A skin pack is a folder with a `manifest.json`, one folder of PNG or WebP frames per animation, and the art's license, placed in `Documents\cc-companion\skins\<name>\`. Then set `"skin": "<name>"` in `Documents\cc-companion\settings.json`. Please respect the license of any art you use.
 
 ## For developers
 
@@ -235,6 +235,8 @@ The source is here under the MIT license. A developer guide is coming. Until the
 ## Changelog
 
 **2026-10-30**
+- Her files moved to `Documents\cc-companion`, where you can find and back them up. The first start copies the old folder over and keeps it.
+- Fixed: **Open her folder** opened the wrong folder when Claude Code ran in the Claude desktop app.
 - She can look things up on the web, if you let her. Turn on **Persona → Web search** (Normal: 10 searches a day; Unlimited or your own number too), and she may search to answer what you ask in the chat box. Searches show in the Today line and count toward her daily limit.
 - The chat box waits up to a minute for her answer, so a search has time to finish.
 - She grows closer to you over the days, with your pats and chats, and it shows in how she talks to you.

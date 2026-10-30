@@ -1,4 +1,9 @@
 import json
+import shutil
+import sys
+from pathlib import Path
+
+import pytest
 
 from companion import settings as prefs
 
@@ -120,3 +125,88 @@ def test_chattiness_lives_in_her_config_and_keeps_her_other_keys(isolated_app_di
     assert prefs.read_chattiness() == "normal"
     path.write_text("not json", encoding="utf-8")
     assert prefs.read_chattiness() == "normal" and prefs.write_chattiness("quiet")
+
+
+# --- the app folder in Documents --------------------------------------------------------------
+
+windows_only = pytest.mark.skipif(sys.platform != "win32", reason="the Documents folder is the Windows default")
+
+
+def old_folder(root):
+    (root / "persona" / "diary").mkdir(parents=True)
+    (root / "persona" / "identity.md").write_text("我是小汐。", encoding="utf-8")
+    (root / "persona" / "diary" / "2026-10-28.md").write_text("# 2026-10-28", encoding="utf-8")
+    (root / "settings.json").write_text('{"size": "L"}', encoding="utf-8")
+    return root
+
+
+def test_the_old_folder_is_copied_once_and_left_as_it_was(tmp_path):
+    old, new = old_folder(tmp_path / "AppData" / "cc-companion"), tmp_path / "Documents" / "cc-companion"
+    assert prefs.copy_old_folder(old, new)
+    assert (new / "persona" / "identity.md").read_text(encoding="utf-8") == "我是小汐。"
+    assert (new / "persona" / "diary" / "2026-10-28.md").exists() and (new / "settings.json").exists()
+    assert (old / "persona" / "identity.md").exists(), "the old folder stays as a backup"
+    (new / "settings.json").write_text('{"size": "S"}', encoding="utf-8")
+    assert not prefs.copy_old_folder(old, new), "never over a folder that is already there"
+    assert (new / "settings.json").read_text(encoding="utf-8") == '{"size": "S"}'
+    assert not prefs.copy_old_folder(tmp_path / "missing", tmp_path / "elsewhere")
+    assert not (tmp_path / "elsewhere").exists()
+
+
+def test_a_copy_that_loses_the_race_is_thrown_away(tmp_path, monkeypatch):
+    old, new = old_folder(tmp_path / "old"), tmp_path / "new"
+    real_copytree = shutil.copytree
+
+    def copy_while_another_process_wins(src, dst, *args, **kwargs):
+        copied = real_copytree(src, dst, *args, **kwargs)  # it recurses through here for subfolders
+        if Path(src) == old:
+            new.mkdir()
+            (new / "settings.json").write_text('{"size": "M"}', encoding="utf-8")
+        return copied
+
+    monkeypatch.setattr(shutil, "copytree", copy_while_another_process_wins)
+    assert not prefs.copy_old_folder(old, new)
+    assert (new / "settings.json").read_text(encoding="utf-8") == '{"size": "M"}', "the winner's copy stays"
+    assert [p.name for p in tmp_path.iterdir() if "copying" in p.name] == [], "ours is cleaned up"
+
+
+@windows_only
+def test_on_windows_the_app_folder_is_in_documents_and_starts_as_a_copy(tmp_path, monkeypatch):
+    old = old_folder(tmp_path / "AppData" / "cc-companion")
+    monkeypatch.delenv("CC_COMPANION_HOME")
+    monkeypatch.setattr(prefs, "documents_dir", lambda: tmp_path / "Documents")
+    monkeypatch.setattr(prefs, "legacy_dir", lambda: old)
+    monkeypatch.setattr(prefs, "copied_from", None)
+    assert prefs.app_dir() == tmp_path / "Documents" / "cc-companion"
+    assert prefs.copied_from == old and prefs.persona_dir() == tmp_path / "Documents" / "cc-companion" / "persona"
+    assert (prefs.persona_dir() / "identity.md").read_text(encoding="utf-8") == "我是小汐。"
+    assert prefs.load().size == "L", "her settings came along"
+
+
+@windows_only
+def test_a_failed_copy_keeps_using_the_old_folder_for_now(tmp_path, monkeypatch):
+    old = old_folder(tmp_path / "AppData" / "cc-companion")
+    monkeypatch.delenv("CC_COMPANION_HOME")
+    monkeypatch.setattr(prefs, "documents_dir", lambda: tmp_path / "Documents")
+    monkeypatch.setattr(prefs, "legacy_dir", lambda: old)
+
+    def disk_full(src, dst, *args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(shutil, "copytree", disk_full)
+    assert prefs.app_dir() == old
+    assert not (tmp_path / "Documents" / "cc-companion").exists(), "so the copy is tried again next time"
+
+
+@windows_only
+def test_a_fresh_install_starts_an_empty_folder_in_documents(tmp_path, monkeypatch):
+    monkeypatch.delenv("CC_COMPANION_HOME")
+    monkeypatch.setattr(prefs, "documents_dir", lambda: tmp_path / "Documents")
+    monkeypatch.setattr(prefs, "legacy_dir", lambda: tmp_path / "AppData" / "cc-companion")
+    assert prefs.app_dir() == tmp_path / "Documents" / "cc-companion" and prefs.app_dir().is_dir()
+
+
+@windows_only
+def test_documents_is_found_through_windows():
+    found = prefs.documents_dir()
+    assert found.is_absolute() and found.is_dir()

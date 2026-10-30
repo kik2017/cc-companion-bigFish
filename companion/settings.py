@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import sys
 from dataclasses import asdict, dataclass, fields
 from datetime import date, datetime, timedelta
@@ -14,7 +15,7 @@ from pathlib import Path
 APP_NAME = "cc-companion"
 LOG_MAX_BYTES = 2_000_000
 
-# Pet height in logical px: 0.6, 0.8 and 1.0 of the native 344 px frame.
+# Pet height in logical px: 0.6, 0.8 and 1.0 of a 344 px frame (the bundled 360 px one draws a little smaller).
 SIZES = {"S": 206, "M": 275, "L": 344}
 BUBBLE_MODES = ("always", "hidden", "attention")
 ACTIVITY_LEVELS = ("quiet", "normal", "lively")
@@ -24,19 +25,84 @@ PERSONA_MODES = ("off", "on", "quiet")
 SKIN_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 
 
+# Where app_dir() copied the old folder from in this process, if it did; the daemon logs it.
+copied_from: Path | None = None
+
+
 def app_dir() -> Path:
-    """Settings and log root; CC_COMPANION_HOME overrides it (tests use this)."""
+    """Settings, logs, skin packs and her memories; CC_COMPANION_HOME overrides it (tests use this).
+
+    On Windows it is Documents\\cc-companion, where it is easy to find and back up, and which
+    Windows does not redirect for packaged apps. Under AppData it was redirected: the
+    Claude desktop app is a packaged app and Claude Code's hooks start the pet from it, so
+    its files went to the app's own store, invisible to Explorer, and a pet started from a
+    terminal kept a folder of its own. The first time this runs with no Documents folder
+    yet, the old AppData one is copied over and left as it was; if that copy fails, the old
+    folder is used for this run and the copy is tried again next time.
+    """
+    global copied_from
     override = os.environ.get("CC_COMPANION_HOME")
     if override:
         root = Path(override)
     elif sys.platform == "win32":
-        root = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / APP_NAME
+        root, old = documents_dir() / APP_NAME, legacy_dir()
+        if copy_old_folder(old, root):
+            copied_from = old
+        elif not root.exists() and old.is_dir():
+            return old
     elif sys.platform == "darwin":
         root = Path.home() / "Library" / "Application Support" / APP_NAME
     else:
         root = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / APP_NAME
     root.mkdir(parents=True, exist_ok=True)
     return root
+
+
+def documents_dir() -> Path:
+    """The user's Documents folder, wherever Windows keeps it (it may have been moved, or be on OneDrive)."""
+    try:
+        import ctypes
+        import uuid
+
+        class GUID(ctypes.Structure):
+            _fields_ = [("data1", ctypes.c_uint32), ("data2", ctypes.c_uint16), ("data3", ctypes.c_uint16), ("data4", ctypes.c_ubyte * 8)]
+
+        documents = GUID.from_buffer_copy(uuid.UUID("FDD39AD0-238F-46AF-ADB4-6C85480369C7").bytes_le)  # FOLDERID_Documents
+        found = ctypes.c_wchar_p()
+        shell32, ole32 = ctypes.windll.shell32, ctypes.windll.ole32
+        shell32.SHGetKnownFolderPath.argtypes = [ctypes.POINTER(GUID), ctypes.c_uint32, ctypes.c_void_p, ctypes.POINTER(ctypes.c_wchar_p)]
+        if shell32.SHGetKnownFolderPath(ctypes.byref(documents), 0, None, ctypes.byref(found)) == 0 and found.value:
+            path = Path(found.value)
+            ole32.CoTaskMemFree(found)
+            return path
+    except (AttributeError, OSError, ValueError):
+        pass
+    return Path.home() / "Documents"
+
+
+def legacy_dir() -> Path:
+    """Where Windows installs kept everything before it moved to Documents."""
+    return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / APP_NAME
+
+
+def copy_old_folder(old: Path, new: Path) -> bool:
+    """Copy `old` to `new` if `new` does not exist yet and `old` does; True if this call made the copy.
+
+    The copy goes to a temporary sibling first and is renamed into place, so of two
+    processes starting at once (the hook launcher and the daemon it starts) one wins and
+    the other's copy is thrown away. `old` is never changed.
+    """
+    if new.exists() or not old.is_dir():
+        return False
+    temp = new.with_name(f"{new.name}.copying-{os.getpid()}")
+    try:
+        new.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(old, temp)
+        temp.rename(new)
+    except OSError:
+        shutil.rmtree(temp, ignore_errors=True)
+        return False
+    return True
 
 
 def settings_path() -> Path:
